@@ -1,5 +1,5 @@
 import betamine/protocol/encoder
-import gleam/bytes_builder.{type BytesBuilder}
+import gleam/bytes_tree.{type BytesTree}
 
 pub type ChatSession {
   ChatSession(
@@ -10,8 +10,8 @@ pub type ChatSession {
   )
 }
 
-pub fn encode(builder: BytesBuilder, session: ChatSession) {
-  builder
+pub fn encode(tree: BytesTree, session: ChatSession) {
+  tree
   |> encoder.uuid(session.id)
   |> encoder.long(session.expires)
   |> encoder.byte_array(session.encoded_public_key)

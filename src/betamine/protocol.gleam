@@ -3,7 +3,7 @@ import betamine/protocol/encoder
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
-import gleam/bytes_builder
+import gleam/bytes_tree
 import gleam/int
 import gleam/io
 import gleam/string
@@ -22,9 +22,9 @@ pub fn decode_serverbound(phase: phase.Phase, data: BitArray) {
 }
 
 pub fn encode_clientbound(packet: clientbound.Packet) {
-  let builder = clientbound.encode(packet)
+  let tree = clientbound.encode(packet)
   let size =
-    bytes_builder.new()
-    |> encoder.var_int(bytes_builder.byte_size(builder))
-  bytes_builder.prepend_builder(builder, size)
+    bytes_tree.new()
+    |> encoder.var_int(bytes_tree.byte_size(tree))
+  bytes_tree.prepend_tree(tree, size)
 }

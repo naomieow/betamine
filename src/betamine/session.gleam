@@ -12,7 +12,7 @@ import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import betamine/protocol/registry
 import gleam/bit_array
-import gleam/bytes_builder
+import gleam/bytes_tree
 import gleam/erlang/process.{type Subject}
 import gleam/function
 import gleam/io
@@ -323,7 +323,7 @@ fn send(state: State, packets: List(clientbound.Packet)) {
   list.each(packets, fn(packet) {
     io.debug(packet)
     let encoded_packet = protocol.encode_clientbound(packet)
-    io.debug(bit_array.inspect(bytes_builder.to_bit_array(encoded_packet)))
+    io.debug(bit_array.inspect(bytes_tree.to_bit_array(encoded_packet)))
     let assert Ok(Nil) = glisten.send(state.connection, encoded_packet)
   })
 }
