@@ -1,9 +1,10 @@
+import betamine/common/uuid
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
 import gleam/option.{type Option}
 
 pub type Profile {
-  Profile(id: Int, name: String, properties: List(ProfileProperty))
+  Profile(id: uuid.Uuid, name: String, properties: List(ProfileProperty))
 }
 
 pub type ProfileProperty {

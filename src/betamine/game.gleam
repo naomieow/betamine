@@ -1,6 +1,7 @@
 import betamine/common/entity.{type Entity}
 import betamine/common/entity_type
 import betamine/common/player.{type Player}
+import betamine/common/uuid
 import betamine/common/vector3
 import betamine/constants
 import betamine/game/command.{type Command}
@@ -14,7 +15,7 @@ import gleam/pair
 
 type Game {
   Game(
-    sessions: dict.Dict(Int, #(Subject(Update), Player)),
+    sessions: dict.Dict(uuid.Uuid, #(Subject(Update), Player)),
     entities: dict.Dict(Int, Entity),
   )
 }

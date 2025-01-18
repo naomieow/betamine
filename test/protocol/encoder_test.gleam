@@ -1,5 +1,4 @@
 import betamine/protocol/encoder
-import gleam/bit_array
 import gleam/bytes_tree
 import gleeunit/should
 

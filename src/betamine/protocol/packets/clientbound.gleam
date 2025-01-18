@@ -4,6 +4,7 @@ import betamine/common/entity_type
 import betamine/common/game_mode
 import betamine/common/profile
 import betamine/common/rotation.{type Rotation}
+import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import betamine/constants
 import betamine/protocol/common
@@ -188,7 +189,7 @@ fn encode_status_pong(tree: BytesTree, packet: StatusPongPacket) {
 
 pub type LoginSuccessPacket {
   LoginSuccessPacket(
-    uuid: Int,
+    uuid: uuid.Uuid,
     username: String,
     properties: List(profile.ProfileProperty),
     strict_error_handling: Bool,
@@ -453,7 +454,7 @@ pub fn encode_synchronize_player_position(
 }
 
 pub type PlayerInfoRemovePacket {
-  PlayerInfoRemovePacket(uuids: List(Int))
+  PlayerInfoRemovePacket(uuids: List(uuid.Uuid))
 }
 
 fn encode_player_info_remove(tree: BytesTree, packet: PlayerInfoRemovePacket) {
@@ -510,7 +511,7 @@ fn get_player_info_update_action_bit(action: PlayerInfoUpdateAction) {
 
 pub type PlayerInfoUpdateEntry {
   PlayerInfoUpdateEntry(
-    uuid: Int,
+    uuid: uuid.Uuid,
     name: String,
     latency: Int,
     visible_on_player_list: Bool,
@@ -565,7 +566,7 @@ fn encode_player_info_update_entry(
 pub type SpawnEntityPacket {
   SpawnEntityPacket(
     id: Int,
-    uuid: Int,
+    uuid: uuid.Uuid,
     entity_type: entity_type.EntityType,
     position: Vector3(Float),
     rotation: Rotation,

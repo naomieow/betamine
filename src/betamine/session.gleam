@@ -1,5 +1,6 @@
 import betamine/common/difficulty
 import betamine/common/player.{type Player, Player}
+import betamine/common/uuid
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
@@ -69,7 +70,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          Player("", 0, 0),
+          Player("", uuid.default, 0),
         ),
         selector,
       )

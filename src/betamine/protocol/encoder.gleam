@@ -1,3 +1,4 @@
+import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import gleam/bit_array
 import gleam/bytes_tree.{type BytesTree}
@@ -77,8 +78,8 @@ pub fn angle(tree: BytesTree, angle: Float) -> BytesTree {
   byte(tree, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
 }
 
-pub fn uuid(tree: BytesTree, int: Int) -> BytesTree {
-  bytes_tree.append(tree, <<int:int-size(128)>>)
+pub fn uuid(tree: BytesTree, uuid: uuid.Uuid) -> BytesTree {
+  bytes_tree.append(tree, uuid.to_bit_array(uuid))
 }
 
 pub fn raw(tree: BytesTree, bit_array: BitArray) {

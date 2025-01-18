@@ -1,9 +1,10 @@
+import betamine/common/uuid
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
 
 pub type ChatSession {
   ChatSession(
-    id: Int,
+    id: uuid.Uuid,
     expires: Int,
     encoded_public_key: BitArray,
     public_key_signature: BitArray,
