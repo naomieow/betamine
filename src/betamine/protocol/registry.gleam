@@ -1,5 +1,4 @@
 import gleam/bytes_tree
-import gleam/io
 import glisten.{type Connection}
 import simplifile
 
@@ -24,9 +23,6 @@ pub fn send_registry(
         simplifile.read_bits(
           "src/betamine/protocol/registries/" <> registry_path,
         )
-      // io.debug("REGISTRY:")
-      // io.debug(registry_path)
-      // io.debug(registry)
       let _ = glisten.send(connection, bytes_tree.from_bit_array(registry))
       send_registry(connection, registry_paths)
     }

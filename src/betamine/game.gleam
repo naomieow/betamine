@@ -121,7 +121,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
         Game(..game, entities: dict.insert(game.entities, entity.id, entity)),
       )
     }
-    command.RemovePlayer(uuid, subject) -> {
+    command.RemovePlayer(uuid, _subject) -> {
       let session = dict.get(game.sessions, uuid)
       let game = case session {
         Error(_) -> game

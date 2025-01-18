@@ -72,7 +72,7 @@ fn encode_paletted_container(
       |> encoder.var_int(id)
       |> encoder.var_int(0)
     }
-    Indirect(ids) -> todo
+    Indirect(_) -> todo
     Direct -> todo
   }
 }

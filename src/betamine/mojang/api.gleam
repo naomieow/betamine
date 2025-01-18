@@ -18,9 +18,7 @@ pub fn fetch_profile(uuid: uuid.Uuid) {
   io.debug(req)
   // Send the HTTP request to the server
   use resp <- result.try(httpc.send(req))
-  io.debug(resp.body)
   let profile = json.parse(resp.body, profile.decoder())
-  io.debug(profile)
   let assert Ok(profile) = profile
   Ok(profile)
 }

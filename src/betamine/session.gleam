@@ -21,7 +21,6 @@ import gleam/function
 import gleam/io
 import gleam/list
 import gleam/otp/actor
-import gleam/result
 import gleam/string
 import glisten
 
