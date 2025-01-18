@@ -3,6 +3,9 @@ import betamine/common/vector3.{Vector3}
 // Hosting Constants
 pub const default_host_port = 25_565
 
+// Mojang Constants
+pub const mojang_base_profile_url = "https://sessionserver.mojang.com/session/minecraft/profile/"
+
 // Minecraft Constants
 pub const mc_version_name = "1.21.1"
 

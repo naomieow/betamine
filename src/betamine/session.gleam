@@ -1,11 +1,13 @@
 import betamine/common/difficulty
 import betamine/common/player.{type Player, Player}
+import betamine/common/profile
 import betamine/common/uuid
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
 import betamine/handlers/entity_handler
 import betamine/handlers/player_handler
+import betamine/mojang/api as mojang_api
 import betamine/protocol
 import betamine/protocol/common/game_event
 import betamine/protocol/packets/clientbound
@@ -19,6 +21,7 @@ import gleam/function
 import gleam/io
 import gleam/list
 import gleam/otp/actor
+import gleam/result
 import gleam/string
 import glisten
 
@@ -70,7 +73,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          Player("", uuid.default, 0),
+          Player("", uuid.default, 0, profile.default),
         ),
         selector,
       )
@@ -176,15 +179,16 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.LoginStart(packet) -> {
+      let assert Ok(profile) = mojang_api.fetch_profile(packet.uuid)
       send(state, [
         clientbound.LoginSuccess(clientbound.LoginSuccessPacket(
           username: packet.name,
           uuid: packet.uuid,
-          properties: [],
+          properties: profile.properties,
           strict_error_handling: False,
         )),
       ])
-      Ok(State(..state, player: Player(packet.name, packet.uuid, 0)))
+      Ok(State(..state, player: Player(packet.name, packet.uuid, 0, profile)))
     }
     serverbound.LoginAcknowledged ->
       Ok(State(..state, phase: phase.Configuration))
@@ -241,6 +245,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
             entity_id: player.entity_id,
           ),
         ),
+        player_handler.handle_add(player),
         clientbound.ChangeDifficulty(clientbound.ChangeDifficultyPacket(
           difficulty: difficulty.Easy,
           locked: False,

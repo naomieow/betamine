@@ -6,6 +6,7 @@ import betamine/common/vector3
 import betamine/constants
 import betamine/game/command.{type Command}
 import betamine/game/update.{type Update}
+import betamine/mojang/api as mojang_api
 import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/function
@@ -62,6 +63,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
       actor.continue(game)
     }
     command.SpawnPlayer(subject, player_subject, uuid, name) -> {
+      let assert Ok(profile) = mojang_api.fetch_profile(uuid)
       let entity =
         entity.Entity(
           ..entity.default,
@@ -70,7 +72,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           entity_type: entity_type.Player,
           position: constants.mc_player_spawn_point,
         )
-      let player = player.Player(name, uuid, entity.id)
+      let player = player.Player(name, uuid, entity.id, profile)
       process.send(player_subject, #(player, entity))
       update_sessions(game, update.PlayerSpawned(player, entity))
       actor.continue(Game(

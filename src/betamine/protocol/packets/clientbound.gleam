@@ -200,7 +200,7 @@ fn encode_login_success(tree: BytesTree, packet: LoginSuccessPacket) {
   tree
   |> encoder.uuid(packet.uuid)
   |> encoder.string(packet.username)
-  |> encoder.array(packet.properties, profile.encode_profile_property)
+  |> encoder.array(packet.properties, profile.encode_property)
   |> encoder.bool(packet.strict_error_handling)
 }
 
@@ -534,10 +534,7 @@ fn encode_player_info_update_entry(
     True -> {
       tree
       |> encoder.string(entry.name)
-      |> encoder.array(
-        entry.profile.properties,
-        profile.encode_profile_property,
-      )
+      |> encoder.array(entry.profile.properties, profile.encode_property)
     }
     False -> tree
   }
