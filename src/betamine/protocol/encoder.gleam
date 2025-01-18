@@ -1,136 +1,126 @@
+import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import gleam/bit_array
-import gleam/bytes_builder.{type BytesBuilder}
+import gleam/bytes_tree.{type BytesTree}
 import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/string
 
-pub fn bool(builder: BytesBuilder, bool: Bool) -> BytesBuilder {
+pub fn bool(tree: BytesTree, bool: Bool) -> BytesTree {
   case bool {
-    True -> bytes_builder.append(builder, <<1:int-size(8)>>)
-    False -> bytes_builder.append(builder, <<0:int-size(8)>>)
+    True -> bytes_tree.append(tree, <<1:int-size(8)>>)
+    False -> bytes_tree.append(tree, <<0:int-size(8)>>)
   }
 }
 
-pub fn var_int(builder: BytesBuilder, int: Int) -> BytesBuilder {
+pub fn var_int(tree: BytesTree, int: Int) -> BytesTree {
   let clamped_int = int.bitwise_and(int, 0xFFFFFFFF)
-  var_int_accumulator(builder, clamped_int)
+  var_int_accumulator(tree, clamped_int)
 }
 
-fn var_int_accumulator(builder: BytesBuilder, int: Int) {
+fn var_int_accumulator(tree: BytesTree, int: Int) {
   let segment = int.bitwise_and(int, 0b01111111)
   let int = int.bitwise_shift_right(int, 7)
   let segment = case int {
     0 -> segment
     _ -> int.bitwise_or(segment, 0b10000000)
   }
-  let builder = bytes_builder.append(builder, <<segment:int-size(8)>>)
+  let tree = bytes_tree.append(tree, <<segment:int-size(8)>>)
   case int {
-    0 -> builder
-    _ -> var_int_accumulator(builder, int)
+    0 -> tree
+    _ -> var_int_accumulator(tree, int)
   }
 }
 
-pub fn string(builder: BytesBuilder, string: String) -> BytesBuilder {
-  let builder = var_int(builder, string.length(string))
-  bytes_builder.append(builder, <<string:utf8>>)
+pub fn string(tree: BytesTree, string: String) -> BytesTree {
+  let tree = var_int(tree, string.length(string))
+  bytes_tree.append(tree, <<string:utf8>>)
 }
 
-pub fn identifier(
-  builder: BytesBuilder,
-  identifier: #(String, String),
-) -> BytesBuilder {
-  string(builder, identifier.0 <> ":" <> identifier.1)
+pub fn identifier(tree: BytesTree, identifier: #(String, String)) -> BytesTree {
+  string(tree, identifier.0 <> ":" <> identifier.1)
 }
 
-pub fn byte(builder: BytesBuilder, int: Int) -> BytesBuilder {
-  bytes_builder.append(builder, <<int:int-big-size(8)>>)
+pub fn byte(tree: BytesTree, int: Int) -> BytesTree {
+  bytes_tree.append(tree, <<int:int-big-size(8)>>)
 }
 
-pub fn short(builder: BytesBuilder, int: Int) -> BytesBuilder {
-  bytes_builder.append(builder, <<int:int-size(16)>>)
+pub fn short(tree: BytesTree, int: Int) -> BytesTree {
+  bytes_tree.append(tree, <<int:int-size(16)>>)
 }
 
-pub fn int(builder: BytesBuilder, int: Int) -> BytesBuilder {
-  bytes_builder.append(builder, <<int:int-size(32)>>)
+pub fn int(tree: BytesTree, int: Int) -> BytesTree {
+  bytes_tree.append(tree, <<int:int-size(32)>>)
 }
 
-pub fn long(builder: BytesBuilder, int: Int) -> BytesBuilder {
-  bytes_builder.append(builder, <<int:int-size(64)>>)
+pub fn long(tree: BytesTree, int: Int) -> BytesTree {
+  bytes_tree.append(tree, <<int:int-size(64)>>)
 }
 
-pub fn float(builder: BytesBuilder, float: Float) -> BytesBuilder {
-  bytes_builder.append(builder, <<float:float-size(32)>>)
+pub fn float(tree: BytesTree, float: Float) -> BytesTree {
+  bytes_tree.append(tree, <<float:float-size(32)>>)
 }
 
-pub fn double(builder: BytesBuilder, float: Float) -> BytesBuilder {
-  bytes_builder.append(builder, <<float:float-size(64)>>)
+pub fn double(tree: BytesTree, float: Float) -> BytesTree {
+  bytes_tree.append(tree, <<float:float-size(64)>>)
 }
 
-pub fn position(builder: BytesBuilder, position: Vector3(Float)) -> BytesBuilder {
+pub fn position(tree: BytesTree, position: Vector3(Float)) -> BytesTree {
   let x = float.truncate(position.x)
   let z = float.truncate(position.z)
   let y = float.truncate(position.y)
-  bytes_builder.append(builder, <<
-    x:int-size(26),
-    z:int-size(26),
-    y:int-size(12),
-  >>)
+  bytes_tree.append(tree, <<x:int-size(26), z:int-size(26), y:int-size(12)>>)
 }
 
-pub fn angle(builder: BytesBuilder, angle: Float) -> BytesBuilder {
-  byte(builder, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
+pub fn angle(tree: BytesTree, angle: Float) -> BytesTree {
+  byte(tree, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
 }
 
-pub fn uuid(builder: BytesBuilder, int: Int) -> BytesBuilder {
-  bytes_builder.append(builder, <<int:int-size(128)>>)
+pub fn uuid(tree: BytesTree, uuid: uuid.Uuid) -> BytesTree {
+  bytes_tree.append(tree, uuid.to_bit_array(uuid))
 }
 
-pub fn raw(builder: BytesBuilder, bit_array: BitArray) {
-  bytes_builder.append(builder, bit_array)
+pub fn raw(tree: BytesTree, bit_array: BitArray) {
+  bytes_tree.append(tree, bit_array)
 }
 
 type Encoder(value) =
-  fn(BytesBuilder, value) -> BytesBuilder
+  fn(BytesTree, value) -> BytesTree
 
-pub fn raw_array(
-  builder: BytesBuilder,
-  list: List(value),
-  encoder: Encoder(value),
-) {
+pub fn raw_array(tree: BytesTree, list: List(value), encoder: Encoder(value)) {
   case list {
-    [first, ..rest] -> encoder(builder, first) |> raw_array(rest, encoder)
-    [] -> builder
+    [first, ..rest] -> encoder(tree, first) |> raw_array(rest, encoder)
+    [] -> tree
   }
 }
 
 /// Encodes a length prefixed array
 pub fn array(
-  builder: BytesBuilder,
+  tree: BytesTree,
   list: List(value),
   encoder: Encoder(value),
-) -> BytesBuilder {
-  var_int(builder, list.length(list))
+) -> BytesTree {
+  var_int(tree, list.length(list))
   |> raw_array(list, encoder)
 }
 
-pub fn byte_array(builder: BytesBuilder, bit_array: BitArray) {
-  builder
+pub fn byte_array(tree: BytesTree, bit_array: BitArray) {
+  tree
   |> var_int(bit_array.byte_size(bit_array))
   |> raw(bit_array)
 }
 
 pub fn optional(
-  builder: BytesBuilder,
+  tree: BytesTree,
   optional: Option(a),
-  when_some: fn(BytesBuilder, a) -> BytesBuilder,
+  when_some: fn(BytesTree, a) -> BytesTree,
 ) {
   case optional {
-    None -> bool(builder, False)
+    None -> bool(tree, False)
     Some(value) -> {
-      bool(builder, True)
+      bool(tree, True)
       |> when_some(value)
     }
   }

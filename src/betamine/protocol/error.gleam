@@ -6,6 +6,7 @@ pub type ProtocolError {
   InvalidByteRange(data: BitArray, byte_count: Int)
   InvalidVarInt
   InvalidString(data: BitArray)
+  InvalidUUID(data: BitArray)
   InvalidBoolean
   EndOfData
   InvalidEnumValue(min: Int, max: Int, value: Int)

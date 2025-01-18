@@ -1,11 +1,10 @@
 import betamine/protocol/encoder
-import gleam/bit_array
-import gleam/bytes_builder
+import gleam/bytes_tree
 import gleeunit/should
 
 fn encode_var_int(int: Int) {
-  encoder.var_int(bytes_builder.new(), int)
-  |> bytes_builder.to_bit_array
+  encoder.var_int(bytes_tree.new(), int)
+  |> bytes_tree.to_bit_array
 }
 
 pub fn encode_var_int_min_test() {

@@ -1,4 +1,5 @@
 import betamine/common/rotation.{type Rotation, Rotation}
+import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
 import betamine/protocol/common/chat_mode
 import betamine/protocol/common/handedness
@@ -105,7 +106,7 @@ pub fn decode_ping(bit_array: BitArray, wrapper: fn(PingPacket) -> Packet) {
 }
 
 pub type LoginStartPacket {
-  LoginStartPacket(name: String, uuid: Int)
+  LoginStartPacket(name: String, uuid: uuid.Uuid)
 }
 
 pub fn decode_login_start(bit_array: BitArray) {

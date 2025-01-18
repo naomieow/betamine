@@ -1,6 +1,6 @@
 import betamine/common/game_mode.{type GameMode}
 import betamine/protocol/encoder
-import gleam/bytes_builder.{type BytesBuilder}
+import gleam/bytes_tree.{type BytesTree}
 import gleam/int
 
 pub type GameEvent {
@@ -28,30 +28,30 @@ pub type DemoEvent {
   TellDemoComplete
 }
 
-pub fn encode(builder: BytesBuilder, game_event: GameEvent) {
+pub fn encode(tree: BytesTree, game_event: GameEvent) {
   case game_event {
     NoRespawnBlockAvailable -> {
-      builder
+      tree
       |> encoder.byte(0)
       |> encoder.float(0.0)
     }
     StartRain -> {
-      builder
+      tree
       |> encoder.byte(1)
       |> encoder.float(0.0)
     }
     EndRain -> {
-      builder
+      tree
       |> encoder.byte(2)
       |> encoder.float(0.0)
     }
     ChangeGameMode(game_mode) -> {
-      builder
+      tree
       |> encoder.byte(3)
       |> encoder.float(game_mode |> game_mode.to_int |> int.to_float)
     }
     WinGame(play_credits) -> {
-      builder
+      tree
       |> encoder.byte(4)
       |> encoder.float(case play_credits {
         False -> 0.0
@@ -59,7 +59,7 @@ pub fn encode(builder: BytesBuilder, game_event: GameEvent) {
       })
     }
     DemoEvent(demo_event) -> {
-      builder
+      tree
       |> encoder.byte(5)
       |> encoder.float(case demo_event {
         ShowDemoScreen -> 0.0
@@ -70,32 +70,32 @@ pub fn encode(builder: BytesBuilder, game_event: GameEvent) {
       })
     }
     ArrowHitPlayer -> {
-      builder
+      tree
       |> encoder.byte(6)
       |> encoder.float(0.0)
     }
     RainLevelChange(level) -> {
-      builder
+      tree
       |> encoder.byte(7)
       |> encoder.float(level)
     }
     ThunderLevelChange(level) -> {
-      builder
+      tree
       |> encoder.byte(8)
       |> encoder.float(level)
     }
     PlayPufferfishStingSound -> {
-      builder
+      tree
       |> encoder.byte(9)
       |> encoder.float(0.0)
     }
     PlayElderGaurdianEffect -> {
-      builder
+      tree
       |> encoder.byte(10)
       |> encoder.float(0.0)
     }
     EnableRespawnScreen(enabled) -> {
-      builder
+      tree
       |> encoder.byte(11)
       |> encoder.float(case enabled {
         False -> 0.0
@@ -103,7 +103,7 @@ pub fn encode(builder: BytesBuilder, game_event: GameEvent) {
       })
     }
     LimitedCrafting(enabled) -> {
-      builder
+      tree
       |> encoder.byte(12)
       |> encoder.float(case enabled {
         False -> 0.0
@@ -111,7 +111,7 @@ pub fn encode(builder: BytesBuilder, game_event: GameEvent) {
       })
     }
     WaitForChunks -> {
-      builder
+      tree
       |> encoder.byte(13)
       |> encoder.float(0.0)
     }

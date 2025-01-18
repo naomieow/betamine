@@ -1,19 +1,31 @@
 import betamine/protocol/encoder
-import gleam/bytes_builder.{type BytesBuilder}
+import gleam/bytes_tree.{type BytesTree}
 
 pub const default_chunk = [
-  default_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
-  default_empty_chunk_section, default_empty_chunk_section,
+  default_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
+  default_empty_chunk_section,
   default_empty_chunk_section,
 ]
 
@@ -37,8 +49,8 @@ pub const default_empty_chunk_section = ChunkSection(
   PalettedContainer(SingleValued(0), []),
 )
 
-pub fn encode_section(builder: BytesBuilder, section: ChunkSection) {
-  builder
+pub fn encode_section(tree: BytesTree, section: ChunkSection) {
+  tree
   |> encoder.short(section.block_count)
   |> encode_paletted_container(section.block_states)
   |> encode_paletted_container(section.biomes)
@@ -49,18 +61,18 @@ pub type PalettedContainer {
 }
 
 fn encode_paletted_container(
-  builder: BytesBuilder,
+  tree: BytesTree,
   paletted_container: PalettedContainer,
 ) {
   case paletted_container.palette {
     SingleValued(id) -> {
-      builder
+      tree
       // Bits per entry
       |> encoder.byte(0)
       |> encoder.var_int(id)
       |> encoder.var_int(0)
     }
-    Indirect(ids) -> todo
+    Indirect(_) -> todo
     Direct -> todo
   }
 }

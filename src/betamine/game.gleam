@@ -1,10 +1,12 @@
 import betamine/common/entity.{type Entity}
 import betamine/common/entity_type
 import betamine/common/player.{type Player}
+import betamine/common/uuid
 import betamine/common/vector3
 import betamine/constants
 import betamine/game/command.{type Command}
 import betamine/game/update.{type Update}
+import betamine/mojang/api as mojang_api
 import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/function
@@ -14,7 +16,7 @@ import gleam/pair
 
 type Game {
   Game(
-    sessions: dict.Dict(Int, #(Subject(Update), Player)),
+    sessions: dict.Dict(uuid.Uuid, #(Subject(Update), Player)),
     entities: dict.Dict(Int, Entity),
   )
 }
@@ -61,6 +63,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
       actor.continue(game)
     }
     command.SpawnPlayer(subject, player_subject, uuid, name) -> {
+      let assert Ok(profile) = mojang_api.fetch_profile(uuid)
       let entity =
         entity.Entity(
           ..entity.default,
@@ -69,7 +72,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           entity_type: entity_type.Player,
           position: constants.mc_player_spawn_point,
         )
-      let player = player.Player(name, uuid, entity.id)
+      let player = player.Player(name, uuid, entity.id, profile)
       process.send(player_subject, #(player, entity))
       update_sessions(game, update.PlayerSpawned(player, entity))
       actor.continue(Game(
@@ -118,7 +121,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
         Game(..game, entities: dict.insert(game.entities, entity.id, entity)),
       )
     }
-    command.RemovePlayer(uuid, subject) -> {
+    command.RemovePlayer(uuid, _subject) -> {
       let session = dict.get(game.sessions, uuid)
       let game = case session {
         Error(_) -> game

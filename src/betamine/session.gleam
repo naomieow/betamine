@@ -1,10 +1,13 @@
 import betamine/common/difficulty
 import betamine/common/player.{type Player, Player}
+import betamine/common/profile
+import betamine/common/uuid
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
 import betamine/handlers/entity_handler
 import betamine/handlers/player_handler
+import betamine/mojang/api as mojang_api
 import betamine/protocol
 import betamine/protocol/common/game_event
 import betamine/protocol/packets/clientbound
@@ -12,7 +15,7 @@ import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import betamine/protocol/registry
 import gleam/bit_array
-import gleam/bytes_builder
+import gleam/bytes_tree
 import gleam/erlang/process.{type Subject}
 import gleam/function
 import gleam/io
@@ -69,7 +72,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          Player("", 0, 0),
+          Player("", uuid.default, 0, profile.default),
         ),
         selector,
       )
@@ -175,15 +178,16 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.LoginStart(packet) -> {
+      let assert Ok(profile) = mojang_api.fetch_profile(packet.uuid)
       send(state, [
         clientbound.LoginSuccess(clientbound.LoginSuccessPacket(
           username: packet.name,
           uuid: packet.uuid,
-          properties: [],
+          properties: profile.properties,
           strict_error_handling: False,
         )),
       ])
-      Ok(State(..state, player: Player(packet.name, packet.uuid, 0)))
+      Ok(State(..state, player: Player(packet.name, packet.uuid, 0, profile)))
     }
     serverbound.LoginAcknowledged ->
       Ok(State(..state, phase: phase.Configuration))
@@ -240,6 +244,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
             entity_id: player.entity_id,
           ),
         ),
+        player_handler.handle_add(player),
         clientbound.ChangeDifficulty(clientbound.ChangeDifficultyPacket(
           difficulty: difficulty.Easy,
           locked: False,
@@ -323,7 +328,7 @@ fn send(state: State, packets: List(clientbound.Packet)) {
   list.each(packets, fn(packet) {
     io.debug(packet)
     let encoded_packet = protocol.encode_clientbound(packet)
-    io.debug(bit_array.inspect(bytes_builder.to_bit_array(encoded_packet)))
+    io.debug(bit_array.inspect(bytes_tree.to_bit_array(encoded_packet)))
     let assert Ok(Nil) = glisten.send(state.connection, encoded_packet)
   })
 }
