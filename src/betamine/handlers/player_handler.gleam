@@ -35,6 +35,13 @@ pub fn handle_spawn(player: Player, entity: Entity) -> List(Packet) {
   [handle_add(player), entity_handler.handle_spawn(entity)]
 }
 
+pub fn handle_metadata_update(player: Player) -> Packet {
+  clientbound.SetEntityMetadata(clientbound.SetEntityMetadataPacket(
+    player.entity_id,
+    player.metadata.is_sneaking,
+  ))
+}
+
 pub fn handle_disconnect(player: Player) -> List(Packet) {
   [
     clientbound.PlayerInfoRemove(

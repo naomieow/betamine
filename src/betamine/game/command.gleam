@@ -1,4 +1,5 @@
 import betamine/common/entity.{type Entity}
+import betamine/common/metadata
 import betamine/common/player.{type Player}
 import betamine/common/rotation.{type Rotation}
 import betamine/common/uuid
@@ -18,5 +19,6 @@ pub type Command {
   MoveEntity(entity_id: Int, position: Vector3(Float), on_ground: Bool)
   RotateEntity(entity_id: Int, rotation: Rotation, on_ground: Bool)
   GetAllPlayers(subject: Subject(List(#(Player, Entity))))
+  UpdatePlayerMetadata(uuid: uuid.Uuid, metadata: metadata.PlayerMetadata)
   Shutdown
 }

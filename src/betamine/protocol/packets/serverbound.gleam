@@ -3,12 +3,11 @@ import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
 import betamine/protocol/common/chat_mode
 import betamine/protocol/common/handedness
+import betamine/protocol/common/player_command_action
 import betamine/protocol/decoder
 import betamine/protocol/error.{InvalidPacket, UnhandledPacket}
 import betamine/protocol/phase
-import gleam/io
 import gleam/result
-import gleam/string
 
 pub type Packet {
   Handshake(HandshakePacket)
@@ -265,46 +264,17 @@ pub fn decode_player_rotation(data: BitArray) {
   Ok(PlayerRotation(PlayerRotationPacket(rotation, on_ground)))
 }
 
-pub type PlayerCommandAction {
-  StartSneaking
-  StopSneaking
-  LeaveBed
-  StartSprinting
-  StopSprinting
-  StartHorseJump
-  StopHorseJump
-  OpenVehicleInventory
-  StartElytraFlying
-}
-
-fn decode_player_command_action(data: BitArray) {
-  use #(action, data) <- result.try(decoder.var_int(data))
-  let action = case action {
-    0 -> Ok(StartSneaking)
-    1 -> Ok(StopSneaking)
-    2 -> Ok(LeaveBed)
-    3 -> Ok(StartSprinting)
-    4 -> Ok(StopSprinting)
-    5 -> Ok(StartHorseJump)
-    6 -> Ok(StopHorseJump)
-    7 -> Ok(OpenVehicleInventory)
-    8 -> Ok(StartElytraFlying)
-    value -> Error(error.InvalidEnumValue("PlayerCommandAction", 0, 8, value))
-  }
-  result.map(action, fn(action) { #(action, data) })
-}
-
 pub type PlayerCommandPacket {
   PlayerCommandPacket(
     entity_id: Int,
-    action: PlayerCommandAction,
+    action: player_command_action.PlayerCommandAction,
     jump_boost: Int,
   )
 }
 
 pub fn decode_player_command(data: BitArray) {
   use #(entity_id, data) <- result.try(decoder.var_int(data))
-  use #(action, data) <- result.try(decode_player_command_action(data))
+  use #(action, data) <- result.try(player_command_action.decode(data))
   use #(jump_boost, _) <- result.try(decoder.var_int(data))
   Ok(PlayerCommand(PlayerCommandPacket(entity_id, action, jump_boost)))
 }

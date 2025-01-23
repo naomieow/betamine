@@ -41,6 +41,7 @@ pub type Packet {
   SetHeadRotation(SetHeadRotationPacket)
   RemoveEntities(RemoveEntitiesPacket)
   PlayKeepAlive(PlayKeepAlivePacket)
+  SetEntityMetadata(SetEntityMetadataPacket)
 }
 
 pub fn encode(packet: Packet) -> BytesTree {
@@ -129,6 +130,10 @@ pub fn encode(packet: Packet) -> BytesTree {
     PlayKeepAlive(packet) -> {
       bytes_tree.from_bit_array(<<0x26>>)
       |> encode_play_keep_alive(packet)
+    }
+    SetEntityMetadata(packet) -> {
+      bytes_tree.from_bit_array(<<0x58>>)
+      |> encode_set_entity_metadata(packet)
     }
   }
 }
@@ -646,4 +651,30 @@ pub type PlayKeepAlivePacket {
 
 fn encode_play_keep_alive(tree: BytesTree, packet: PlayKeepAlivePacket) {
   encoder.long(tree, packet.id)
+}
+
+// An exteremly simplified version of entity metadata.
+pub type SetEntityMetadataPacket {
+  SetEntityMetadataPacket(entity_id: Int, is_sneaking: Bool)
+}
+
+fn encode_set_entity_metadata(tree: BytesTree, packet: SetEntityMetadataPacket) {
+  encoder.var_int(tree, packet.entity_id)
+  |> encoder.byte(0)
+  |> encoder.var_int(0)
+  |> encoder.byte(case packet.is_sneaking {
+    True -> 0b00000000
+    False -> 0
+  })
+  // Pose
+  |> encoder.byte(6)
+  |> encoder.var_int(21)
+  |> encoder.byte(case packet.is_sneaking {
+    // Sneaking
+    True -> 5
+    // Standing
+    False -> 0
+  })
+  // End
+  |> encoder.byte(0xFF)
 }

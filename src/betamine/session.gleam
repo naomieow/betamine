@@ -1,4 +1,5 @@
 import betamine/common/difficulty
+import betamine/common/metadata
 import betamine/common/player.{type Player, Player}
 import betamine/common/profile
 import betamine/common/uuid
@@ -10,6 +11,7 @@ import betamine/handlers/player_handler
 import betamine/mojang/api as mojang_api
 import betamine/protocol
 import betamine/protocol/common/game_event
+import betamine/protocol/common/player_command_action
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
@@ -72,7 +74,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          Player("", uuid.default, 0, profile.default),
+          player.default,
         ),
         selector,
       )
@@ -187,7 +189,18 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
           strict_error_handling: False,
         )),
       ])
-      Ok(State(..state, player: Player(packet.name, packet.uuid, 0, profile)))
+      Ok(
+        State(
+          ..state,
+          player: Player(
+            packet.name,
+            packet.uuid,
+            0,
+            profile,
+            metadata.default_player_metadata,
+          ),
+        ),
+      )
     }
     serverbound.LoginAcknowledged ->
       Ok(State(..state, phase: phase.Configuration))
@@ -314,11 +327,20 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       )
       Ok(state)
     }
-    serverbound.PlayerInput(packet) -> {
-      io.debug(packet)
-      Ok(state)
-    }
     serverbound.PlayerCommand(packet) -> {
+      let is_sneaking = case packet.action {
+        player_command_action.StartSneaking -> True
+        player_command_action.StopSneaking -> False
+        _ -> state.player.metadata.is_sneaking
+      }
+      let metadata = metadata.PlayerMetadata(is_sneaking)
+      process.send(
+        state.game_subject,
+        command.UpdatePlayerMetadata(state.player.uuid, metadata),
+      )
+      Ok(State(..state, player: Player(..state.player, metadata:)))
+    }
+    serverbound.PlayerInput(packet) -> {
       io.debug(packet)
       Ok(state)
     }
@@ -345,6 +367,10 @@ fn handle_game_update(update: update.Update, state: State) {
   case update {
     update.PlayerSpawned(player, entity) -> {
       send(state, player_handler.handle_spawn(player, entity))
+      Ok(state)
+    }
+    update.PlayerMetadataUpdated(player) -> {
+      send(state, [player_handler.handle_metadata_update(player)])
       Ok(state)
     }
     update.EntityPosition(id, delta, on_ground) -> {

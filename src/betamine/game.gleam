@@ -1,5 +1,6 @@
 import betamine/common/entity.{type Entity}
 import betamine/common/entity_type
+import betamine/common/metadata
 import betamine/common/player.{type Player}
 import betamine/common/uuid
 import betamine/common/vector3
@@ -72,7 +73,14 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           entity_type: entity_type.Player,
           position: constants.mc_player_spawn_point,
         )
-      let player = player.Player(name, uuid, entity.id, profile)
+      let player =
+        player.Player(
+          name,
+          uuid,
+          entity.id,
+          profile,
+          metadata.default_player_metadata,
+        )
       process.send(player_subject, #(player, entity))
       update_sessions(game, update.PlayerSpawned(player, entity))
       actor.continue(Game(
@@ -136,7 +144,23 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
 
       actor.continue(game)
     }
-    _ -> actor.continue(game)
+    command.UpdatePlayerMetadata(uuid, metadata) -> {
+      let session = dict.get(game.sessions, uuid)
+      let game = case session {
+        Error(_) -> game
+        Ok(#(subject, player)) -> {
+          let player = player.Player(..player, metadata:)
+          update_sessions(game, update.PlayerMetadataUpdated(player))
+          Game(
+            sessions: dict.insert(game.sessions, uuid, #(subject, player)),
+            entities: game.entities,
+          )
+        }
+      }
+      actor.continue(game)
+    }
+    command.Tick -> actor.continue(game)
+    command.Shutdown -> todo
   }
 }
 
