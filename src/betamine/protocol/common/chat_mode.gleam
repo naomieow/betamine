@@ -16,6 +16,7 @@ pub fn decode(
     0 -> Ok(#(Enabled, bit_array))
     1 -> Ok(#(CommandsOnly, bit_array))
     2 -> Ok(#(Hidden, bit_array))
-    _ -> Error(error.InvalidEnumValue(min: 0, max: 2, value: chat_mode))
+    _ ->
+      Error(error.InvalidEnumValue("ChatMode", min: 0, max: 2, value: chat_mode))
   }
 }

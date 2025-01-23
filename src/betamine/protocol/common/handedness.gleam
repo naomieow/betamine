@@ -14,6 +14,12 @@ pub fn decode(
   case handedness {
     0 -> Ok(#(Left, bit_array))
     1 -> Ok(#(Right, bit_array))
-    _ -> Error(error.InvalidEnumValue(min: 0, max: 1, value: handedness))
+    _ ->
+      Error(error.InvalidEnumValue(
+        "Handedness",
+        min: 0,
+        max: 1,
+        value: handedness,
+      ))
   }
 }
