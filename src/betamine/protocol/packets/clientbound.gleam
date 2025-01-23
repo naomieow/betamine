@@ -663,7 +663,7 @@ fn encode_set_entity_metadata(tree: BytesTree, packet: SetEntityMetadataPacket) 
   |> encoder.byte(0)
   |> encoder.var_int(0)
   |> encoder.byte(case packet.is_sneaking {
-    True -> 0b00000000
+    True -> 0b00000010
     False -> 0
   })
   // Pose
