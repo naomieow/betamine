@@ -9,5 +9,5 @@ pub type ProtocolError {
   InvalidUUID(data: BitArray)
   InvalidBoolean
   EndOfData
-  InvalidEnumValue(min: Int, max: Int, value: Int)
+  InvalidEnumValue(name: String, min: Int, max: Int, value: Int)
 }

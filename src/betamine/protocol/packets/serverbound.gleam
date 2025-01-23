@@ -6,7 +6,9 @@ import betamine/protocol/common/handedness
 import betamine/protocol/decoder
 import betamine/protocol/error.{InvalidPacket, UnhandledPacket}
 import betamine/protocol/phase
+import gleam/io
 import gleam/result
+import gleam/string
 
 pub type Packet {
   Handshake(HandshakePacket)
@@ -23,6 +25,8 @@ pub type Packet {
   PlayerPosition(PlayerPositionPacket)
   PlayerPositionAndRotation(PlayerPositionAndRotationPacket)
   PlayerRotation(PlayerRotationPacket)
+  PlayerCommand(PlayerCommandPacket)
+  PlayerInput(PlayerInputPacket)
 }
 
 pub fn decode(
@@ -72,6 +76,8 @@ pub fn decode(
         0x1A -> decode_player_position(data)
         0x1B -> decode_player_position_and_rotation(data)
         0x1C -> decode_player_rotation(data)
+        0x25 -> decode_player_command(data)
+        0x26 -> decode_player_input(data)
         id if id <= 0x39 -> Error(UnhandledPacket(phase, id))
         _ -> Error(InvalidPacket(phase, id))
       }
@@ -257,4 +263,70 @@ pub fn decode_player_rotation(data: BitArray) {
   let rotation = Rotation(pitch, yaw)
   use #(on_ground, _) <- result.try(decoder.boolean(data))
   Ok(PlayerRotation(PlayerRotationPacket(rotation, on_ground)))
+}
+
+pub type PlayerCommandAction {
+  StartSneaking
+  StopSneaking
+  LeaveBed
+  StartSprinting
+  StopSprinting
+  StartHorseJump
+  StopHorseJump
+  OpenVehicleInventory
+  StartElytraFlying
+}
+
+fn decode_player_command_action(data: BitArray) {
+  use #(action, data) <- result.try(decoder.var_int(data))
+  let action = case action {
+    0 -> Ok(StartSneaking)
+    1 -> Ok(StopSneaking)
+    2 -> Ok(LeaveBed)
+    3 -> Ok(StartSprinting)
+    4 -> Ok(StopSprinting)
+    5 -> Ok(StartHorseJump)
+    6 -> Ok(StopHorseJump)
+    7 -> Ok(OpenVehicleInventory)
+    8 -> Ok(StartElytraFlying)
+    value -> Error(error.InvalidEnumValue("PlayerCommandAction", 0, 8, value))
+  }
+  result.map(action, fn(action) { #(action, data) })
+}
+
+pub type PlayerCommandPacket {
+  PlayerCommandPacket(
+    entity_id: Int,
+    action: PlayerCommandAction,
+    jump_boost: Int,
+  )
+}
+
+pub fn decode_player_command(data: BitArray) {
+  use #(entity_id, data) <- result.try(decoder.var_int(data))
+  use #(action, data) <- result.try(decode_player_command_action(data))
+  use #(jump_boost, _) <- result.try(decoder.var_int(data))
+  Ok(PlayerCommand(PlayerCommandPacket(entity_id, action, jump_boost)))
+}
+
+pub type PlayerInputPacket {
+  PlayerInputPacket(sideways: Float, forward: Float, jump: Bool, dismount: Bool)
+}
+
+pub fn decode_player_input(data: BitArray) {
+  use #(sideways, data) <- result.try(decoder.float(data))
+  use #(forward, data) <- result.try(decoder.float(data))
+  use #(flags, _) <- result.try(decoder.bytes_of_length(data, 1))
+  case flags {
+    <<_:int-size(6), jump:int-size(1), dismount:int-size(1)>> ->
+      Ok(
+        PlayerInput(PlayerInputPacket(
+          sideways,
+          forward,
+          jump == 1,
+          dismount == 1,
+        )),
+      )
+    _ -> Error(error.EndOfData)
+  }
 }

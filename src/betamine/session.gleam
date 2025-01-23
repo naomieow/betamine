@@ -146,7 +146,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     _ -> state
   }
 
-  io.debug("Receivied Packet: " <> string.inspect(packet))
+  // io.debug("Receivied Packet: " <> string.inspect(packet))
 
   case packet {
     serverbound.Handshake(packet) -> {
@@ -314,6 +314,14 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       )
       Ok(state)
     }
+    serverbound.PlayerInput(packet) -> {
+      io.debug(packet)
+      Ok(state)
+    }
+    serverbound.PlayerCommand(packet) -> {
+      io.debug(packet)
+      Ok(state)
+    }
   }
 }
 
@@ -326,9 +334,9 @@ fn send(state: State, packets: List(clientbound.Packet)) {
   )
 
   list.each(packets, fn(packet) {
-    io.debug(packet)
+    // io.debug(packet)
     let encoded_packet = protocol.encode_clientbound(packet)
-    io.debug(bit_array.inspect(bytes_tree.to_bit_array(encoded_packet)))
+    // io.debug(bit_array.inspect(bytes_tree.to_bit_array(encoded_packet)))
     let assert Ok(Nil) = glisten.send(state.connection, encoded_packet)
   })
 }
