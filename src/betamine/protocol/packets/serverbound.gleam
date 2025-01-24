@@ -2,6 +2,7 @@ import betamine/common/rotation.{type Rotation, Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
 import betamine/protocol/common/chat_mode
+import betamine/protocol/common/hand
 import betamine/protocol/common/handedness
 import betamine/protocol/common/interaction
 import betamine/protocol/common/player_command_action
@@ -28,6 +29,7 @@ pub type Packet {
   PlayerRotation(PlayerRotationPacket)
   PlayerCommand(PlayerCommandPacket)
   PlayerInput(PlayerInputPacket)
+  SwingArm(SwingArmPacket)
 }
 
 pub fn decode(
@@ -80,6 +82,7 @@ pub fn decode(
         0x1C -> decode_player_rotation(data)
         0x25 -> decode_player_command(data)
         0x26 -> decode_player_input(data)
+        0x36 -> decode_swing_arm(data)
         id if id <= 0x39 -> Error(UnhandledPacket(phase, id))
         _ -> Error(InvalidPacket(phase, id))
       }
@@ -317,4 +320,13 @@ pub fn decode_player_input(data: BitArray) {
       )
     _ -> Error(error.EndOfData)
   }
+}
+
+pub type SwingArmPacket {
+  SwingArmPacket(hand: hand.Hand)
+}
+
+pub fn decode_swing_arm(data: BitArray) {
+  use #(hand, _) <- result.try(hand.decode(data))
+  Ok(SwingArm(SwingArmPacket(hand)))
 }

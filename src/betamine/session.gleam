@@ -348,6 +348,10 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       io.debug(packet)
       Ok(state)
     }
+    serverbound.SwingArm(packet) -> {
+      io.debug(packet)
+      Ok(state)
+    }
   }
 }
 
