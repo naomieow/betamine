@@ -3,6 +3,7 @@ import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
 import betamine/protocol/common/chat_mode
 import betamine/protocol/common/handedness
+import betamine/protocol/common/interaction
 import betamine/protocol/common/player_command_action
 import betamine/protocol/decoder
 import betamine/protocol/error.{InvalidPacket, UnhandledPacket}
@@ -20,6 +21,7 @@ pub type Packet {
   AcknowledgeFinishConfiguration
   KnownDataPacks(KnownDataPacksPacket)
   ConfirmTeleport(ConfirmTeleportPacket)
+  Interact(InteractPacket)
   KeepAlive(KeepAlivePacket)
   PlayerPosition(PlayerPositionPacket)
   PlayerPositionAndRotation(PlayerPositionAndRotationPacket)
@@ -71,6 +73,7 @@ pub fn decode(
     phase.Play -> {
       case id {
         0x00 -> decode_confirm_teleport(data)
+        0x16 -> decode_interact(data)
         0x18 -> decode_keep_alive(data)
         0x1A -> decode_player_position(data)
         0x1B -> decode_player_position_and_rotation(data)
@@ -202,6 +205,21 @@ pub type ConfirmTeleportPacket {
 pub fn decode_confirm_teleport(data: BitArray) {
   use #(id, _) <- result.try(decoder.var_int(data))
   Ok(ConfirmTeleport(ConfirmTeleportPacket(id)))
+}
+
+pub type InteractPacket {
+  InteractPacket(
+    entity_id: Int,
+    interaction: interaction.Interaction,
+    sneaking: Bool,
+  )
+}
+
+pub fn decode_interact(data: BitArray) {
+  use #(entity_id, data) <- result.try(decoder.var_int(data))
+  use #(interaction, data) <- result.try(interaction.decode(data))
+  use #(sneaking, _) <- result.try(decoder.boolean(data))
+  Ok(Interact(InteractPacket(entity_id, interaction, sneaking)))
 }
 
 pub type KeepAlivePacket {
