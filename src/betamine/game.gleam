@@ -8,6 +8,7 @@ import betamine/constants
 import betamine/game/command.{type Command}
 import betamine/game/update.{type Update}
 import betamine/mojang/api as mojang_api
+import betamine/protocol/common/entity_animation
 import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/function
@@ -159,6 +160,24 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
       }
       actor.continue(game)
     }
+    command.SwingPlayerArm(uuid, is_dominant) -> {
+      let session = dict.get(game.sessions, uuid)
+      case session {
+        Error(_) -> Nil
+        Ok(#(_, player)) -> {
+          let animation = case is_dominant {
+            True -> entity_animation.SwingDominantArm
+            False -> entity_animation.SwingNonDominantArm
+          }
+          update_other_sessions(
+            game,
+            player.uuid,
+            update.EntityAnimation(player.entity_id, animation),
+          )
+        }
+      }
+      actor.continue(game)
+    }
     command.Tick -> actor.continue(game)
     command.Shutdown -> todo
   }
@@ -168,4 +187,19 @@ fn update_sessions(game: Game, update: update.Update) {
   game.sessions
   |> dict.values
   |> list.each(fn(session) { process.send(session.0, update) })
+}
+
+fn update_other_sessions(
+  game: Game,
+  current_uuid: uuid.Uuid,
+  update: update.Update,
+) {
+  game.sessions
+  |> dict.values
+  |> list.each(fn(session) {
+    case uuid.is_equal(current_uuid, { session.1 }.uuid) {
+      True -> Nil
+      False -> process.send(session.0, update)
+    }
+  })
 }

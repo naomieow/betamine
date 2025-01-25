@@ -1,8 +1,6 @@
 import betamine/common/difficulty
 import betamine/common/metadata
 import betamine/common/player.{type Player, Player}
-import betamine/common/profile
-import betamine/common/uuid
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
@@ -11,13 +9,13 @@ import betamine/handlers/player_handler
 import betamine/mojang/api as mojang_api
 import betamine/protocol
 import betamine/protocol/common/game_event
+import betamine/protocol/common/hand
+import betamine/protocol/common/interaction
 import betamine/protocol/common/player_command_action
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import betamine/protocol/registry
-import gleam/bit_array
-import gleam/bytes_tree
 import gleam/erlang/process.{type Subject}
 import gleam/function
 import gleam/io
@@ -344,6 +342,26 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       io.debug(packet)
       Ok(state)
     }
+    serverbound.Interact(packet) -> {
+      case packet.interaction {
+        interaction.Attack -> {
+          process.send(
+            state.game_subject,
+            command.SwingPlayerArm(state.player.uuid, True),
+          )
+        }
+        _ -> Nil
+      }
+      io.debug(packet)
+      Ok(state)
+    }
+    serverbound.SwingArm(packet) -> {
+      process.send(
+        state.game_subject,
+        command.SwingPlayerArm(state.player.uuid, packet.hand == hand.Dominant),
+      )
+      Ok(state)
+    }
   }
 }
 
@@ -383,6 +401,10 @@ fn handle_game_update(update: update.Update, state: State) {
     }
     update.PlayerDisconnected(player) -> {
       send(state, player_handler.handle_disconnect(player))
+      Ok(state)
+    }
+    update.EntityAnimation(id, animation) -> {
+      send(state, [entity_handler.handle_animation(id, animation)])
       Ok(state)
     }
   }

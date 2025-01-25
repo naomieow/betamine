@@ -1,4 +1,6 @@
+import gleam/bit_array
 import gleam/dynamic/decode
+import gleam/order
 import gleam/result
 import youid/uuid
 
@@ -67,4 +69,11 @@ pub fn to_bit_array(uuid: Uuid) -> BitArray {
 pub fn from_bit_array(bit_array: BitArray) -> Result(Uuid, Nil) {
   uuid.from_bit_array(bit_array)
   |> result.map(from_youid)
+}
+
+pub fn is_equal(a: Uuid, b: Uuid) -> Bool {
+  case bit_array.compare(a.value, b.value) {
+    order.Eq -> True
+    _ -> False
+  }
 }

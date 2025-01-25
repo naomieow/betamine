@@ -2,7 +2,9 @@ import betamine/common/rotation.{type Rotation, Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
 import betamine/protocol/common/chat_mode
+import betamine/protocol/common/hand
 import betamine/protocol/common/handedness
+import betamine/protocol/common/interaction
 import betamine/protocol/common/player_command_action
 import betamine/protocol/decoder
 import betamine/protocol/error.{InvalidPacket, UnhandledPacket}
@@ -20,12 +22,14 @@ pub type Packet {
   AcknowledgeFinishConfiguration
   KnownDataPacks(KnownDataPacksPacket)
   ConfirmTeleport(ConfirmTeleportPacket)
+  Interact(InteractPacket)
   KeepAlive(KeepAlivePacket)
   PlayerPosition(PlayerPositionPacket)
   PlayerPositionAndRotation(PlayerPositionAndRotationPacket)
   PlayerRotation(PlayerRotationPacket)
   PlayerCommand(PlayerCommandPacket)
   PlayerInput(PlayerInputPacket)
+  SwingArm(SwingArmPacket)
 }
 
 pub fn decode(
@@ -71,12 +75,14 @@ pub fn decode(
     phase.Play -> {
       case id {
         0x00 -> decode_confirm_teleport(data)
+        0x16 -> decode_interact(data)
         0x18 -> decode_keep_alive(data)
         0x1A -> decode_player_position(data)
         0x1B -> decode_player_position_and_rotation(data)
         0x1C -> decode_player_rotation(data)
         0x25 -> decode_player_command(data)
         0x26 -> decode_player_input(data)
+        0x36 -> decode_swing_arm(data)
         id if id <= 0x39 -> Error(UnhandledPacket(phase, id))
         _ -> Error(InvalidPacket(phase, id))
       }
@@ -204,6 +210,21 @@ pub fn decode_confirm_teleport(data: BitArray) {
   Ok(ConfirmTeleport(ConfirmTeleportPacket(id)))
 }
 
+pub type InteractPacket {
+  InteractPacket(
+    entity_id: Int,
+    interaction: interaction.Interaction,
+    sneaking: Bool,
+  )
+}
+
+pub fn decode_interact(data: BitArray) {
+  use #(entity_id, data) <- result.try(decoder.var_int(data))
+  use #(interaction, data) <- result.try(interaction.decode(data))
+  use #(sneaking, _) <- result.try(decoder.boolean(data))
+  Ok(Interact(InteractPacket(entity_id, interaction, sneaking)))
+}
+
 pub type KeepAlivePacket {
   KeepAlivePacket(id: Int)
 }
@@ -299,4 +320,13 @@ pub fn decode_player_input(data: BitArray) {
       )
     _ -> Error(error.EndOfData)
   }
+}
+
+pub type SwingArmPacket {
+  SwingArmPacket(hand: hand.Hand)
+}
+
+pub fn decode_swing_arm(data: BitArray) {
+  use #(hand, _) <- result.try(hand.decode(data))
+  Ok(SwingArm(SwingArmPacket(hand)))
 }
