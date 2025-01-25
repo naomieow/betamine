@@ -33,7 +33,6 @@ gleam run
 Once running this will start up the server on `localhost` with the port `25565` (the default Minecraft server port), which you'll be able to connect to through your Minecraft client.
 
 ### Caveats
-- I've had some issues getting this to work on Windows, if anyone has any ideas I'd love to hear them!
 - I need to improve the pinging logic for the server. If you're having trouble seeing the server on your list after you add it, hitting the "Refresh" button a few times seems to help...
 
 ## Roadmap
@@ -43,6 +42,5 @@ Also, this project is mostly just for fun, so I have no dates planned for featur
 But, Here's a small breakdown of some of the things that are on my mind for the future:
 
 - Chat Support
-- More Player Action Support (i.e. crouching & punching)
 - Compression
 - Microsoft Authentication
