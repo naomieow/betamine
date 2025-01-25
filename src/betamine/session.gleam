@@ -10,6 +10,7 @@ import betamine/mojang/api as mojang_api
 import betamine/protocol
 import betamine/protocol/common/game_event
 import betamine/protocol/common/hand
+import betamine/protocol/common/interaction
 import betamine/protocol/common/player_command_action
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
@@ -342,6 +343,15 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.Interact(packet) -> {
+      case packet.interaction {
+        interaction.Attack -> {
+          process.send(
+            state.game_subject,
+            command.SwingPlayerArm(state.player.uuid, True),
+          )
+        }
+        _ -> Nil
+      }
       io.debug(packet)
       Ok(state)
     }
