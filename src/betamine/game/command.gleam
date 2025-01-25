@@ -20,5 +20,6 @@ pub type Command {
   RotateEntity(entity_id: Int, rotation: Rotation, on_ground: Bool)
   GetAllPlayers(subject: Subject(List(#(Player, Entity))))
   UpdatePlayerMetadata(uuid: uuid.Uuid, metadata: metadata.PlayerMetadata)
+  SwingPlayerArm(uuid: uuid.Uuid, is_dominant: Bool)
   Shutdown
 }

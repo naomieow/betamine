@@ -36,3 +36,7 @@ pub fn handle_rotate(id, rotation: rotation.Rotation, on_ground) {
     )),
   ]
 }
+
+pub fn handle_animation(id, animation) {
+  clientbound.AnimateEntity(clientbound.AnimateEntityPacket(id, animation))
+}

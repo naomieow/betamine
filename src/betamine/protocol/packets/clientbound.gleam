@@ -9,6 +9,7 @@ import betamine/common/vector3.{type Vector3}
 import betamine/constants
 import betamine/protocol/common
 import betamine/protocol/common/chat_session
+import betamine/protocol/common/entity_animation
 import betamine/protocol/common/game_event
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
@@ -42,6 +43,7 @@ pub type Packet {
   RemoveEntities(RemoveEntitiesPacket)
   PlayKeepAlive(PlayKeepAlivePacket)
   SetEntityMetadata(SetEntityMetadataPacket)
+  AnimateEntity(AnimateEntityPacket)
 }
 
 pub fn encode(packet: Packet) -> BytesTree {
@@ -134,6 +136,10 @@ pub fn encode(packet: Packet) -> BytesTree {
     SetEntityMetadata(packet) -> {
       bytes_tree.from_bit_array(<<0x58>>)
       |> encode_set_entity_metadata(packet)
+    }
+    AnimateEntity(packet) -> {
+      bytes_tree.from_bit_array(<<0x03>>)
+      |> encode_animate_entity(packet)
     }
   }
 }
@@ -677,4 +683,14 @@ fn encode_set_entity_metadata(tree: BytesTree, packet: SetEntityMetadataPacket) 
   })
   // End
   |> encoder.byte(0xFF)
+}
+
+pub type AnimateEntityPacket {
+  AnimateEntityPacket(entity_id: Int, animation: entity_animation.Animation)
+}
+
+pub fn encode_animate_entity(tree: BytesTree, packet: AnimateEntityPacket) {
+  tree
+  |> encoder.var_int(packet.entity_id)
+  |> entity_animation.encode(packet.animation)
 }
