@@ -1,11 +1,12 @@
 import betamine/common/rotation.{type Rotation, Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
-import betamine/protocol/common/chat_mode
-import betamine/protocol/common/hand
-import betamine/protocol/common/handedness
-import betamine/protocol/common/interaction
-import betamine/protocol/common/player_command_action
+import betamine/protocol/common
+import betamine/protocol/common/player/chat/chat_mode
+import betamine/protocol/common/player/player_command_action
+import betamine/protocol/common/player/player_hand
+import betamine/protocol/common/player/player_handedness
+import betamine/protocol/common/player/player_interaction
 import betamine/protocol/decoder
 import betamine/protocol/error.{InvalidPacket, UnhandledPacket}
 import betamine/protocol/phase
@@ -122,7 +123,7 @@ pub type LoginStartPacket {
 
 pub fn decode_login_start(bit_array: BitArray) {
   use #(name, bit_array) <- result.try(decoder.string(bit_array))
-  use #(uuid, _) <- result.try(decoder.uuid(bit_array))
+  use #(uuid, _) <- result.try(common.decode_uuid(bit_array))
   Ok(LoginStart(LoginStartPacket(name, uuid)))
 }
 
@@ -133,7 +134,7 @@ pub type ClientInformationPacket {
     chat_mode: chat_mode.ChatMode,
     chat_colors: Bool,
     model_customizations: Int,
-    main_hand: handedness.Handedness,
+    main_hand: player_handedness.Handedness,
     text_filtering_enabled: Bool,
     allow_server_listings: Bool,
   )
@@ -147,7 +148,7 @@ pub fn decode_client_information(bit_array: BitArray) {
   use #(model_customizations, bit_array) <- result.try(decoder.unsigned_byte(
     bit_array,
   ))
-  use #(main_hand, bit_array) <- result.try(handedness.decode(bit_array))
+  use #(main_hand, bit_array) <- result.try(player_handedness.decode(bit_array))
   use #(text_filtering_enabled, bit_array) <- result.try(decoder.boolean(
     bit_array,
   ))
@@ -213,14 +214,14 @@ pub fn decode_confirm_teleport(data: BitArray) {
 pub type InteractPacket {
   InteractPacket(
     entity_id: Int,
-    interaction: interaction.Interaction,
+    interaction: player_interaction.PlayerInteraction,
     sneaking: Bool,
   )
 }
 
 pub fn decode_interact(data: BitArray) {
   use #(entity_id, data) <- result.try(decoder.var_int(data))
-  use #(interaction, data) <- result.try(interaction.decode(data))
+  use #(interaction, data) <- result.try(player_interaction.decode(data))
   use #(sneaking, _) <- result.try(decoder.boolean(data))
   Ok(Interact(InteractPacket(entity_id, interaction, sneaking)))
 }
@@ -323,10 +324,10 @@ pub fn decode_player_input(data: BitArray) {
 }
 
 pub type SwingArmPacket {
-  SwingArmPacket(hand: hand.Hand)
+  SwingArmPacket(hand: player_hand.PlayerHand)
 }
 
 pub fn decode_swing_arm(data: BitArray) {
-  use #(hand, _) <- result.try(hand.decode(data))
+  use #(hand, _) <- result.try(player_hand.decode(data))
   Ok(SwingArm(SwingArmPacket(hand)))
 }

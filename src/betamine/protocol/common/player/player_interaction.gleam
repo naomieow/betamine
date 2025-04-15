@@ -3,7 +3,7 @@ import betamine/protocol/decoder
 import betamine/protocol/error
 import gleam/result
 
-pub type Interaction {
+pub type PlayerInteraction {
   Interact(off_hand: Bool)
   Attack
   InteractAt(target: Vector3(Float), off_hand: Bool)

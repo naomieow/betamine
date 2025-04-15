@@ -1,6 +1,4 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/entity_type
-import betamine/common/metadata
 import betamine/common/player.{type Player}
 import betamine/common/uuid
 import betamine/common/vector3
@@ -8,7 +6,9 @@ import betamine/constants
 import betamine/game/command.{type Command}
 import betamine/game/update.{type Update}
 import betamine/mojang/api as mojang_api
-import betamine/protocol/common/entity_animation
+import betamine/protocol/common/entity/entity_animation
+import betamine/protocol/common/entity/entity_metadata
+import betamine/protocol/common/entity/entity_type
 import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/function
@@ -80,7 +80,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           uuid,
           entity.id,
           profile,
-          metadata.default_player_metadata,
+          entity_metadata.default_player_metadata(),
         )
       process.send(player_subject, #(player, entity))
       update_sessions(game, update.PlayerSpawned(player, entity))

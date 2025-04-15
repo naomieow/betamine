@@ -36,3 +36,38 @@ pub fn encode_var_int_test() {
   encode_var_int(200)
   |> should.equal(<<200, 1>>)
 }
+
+fn encode_bitmask(bitmask: List(Bool)) {
+  encoder.bitmask(bytes_tree.new(), bitmask)
+  |> bytes_tree.to_bit_array
+}
+
+pub fn encode_bitmask_empty_test() {
+  encode_bitmask([])
+  |> should.equal(<<0>>)
+}
+
+pub fn encode_bitmask_min_test() {
+  encode_bitmask([True])
+  |> should.equal(<<0b00000001>>)
+}
+
+pub fn encode_bitmask_mixed_test() {
+  encode_bitmask([False, True, False, True, False, True, False, True])
+  |> should.equal(<<0b10101010>>)
+}
+
+pub fn encode_bitmask_full_test() {
+  encode_bitmask([True, True, True, True, True, True, True, True])
+  |> should.equal(<<0b11111111>>)
+}
+
+pub fn encode_bitmask_zero_test() {
+  encode_bitmask([False, False, False, False, False, False, False, False])
+  |> should.equal(<<0>>)
+}
+
+pub fn encode_bitmask_overflow_test() {
+  encode_bitmask([False, True, True, True, True, True, True, True, True])
+  |> should.equal(<<0b11111110>>)
+}

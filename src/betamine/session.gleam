@@ -1,5 +1,4 @@
 import betamine/common/difficulty
-import betamine/common/metadata
 import betamine/common/player.{type Player, Player}
 import betamine/constants
 import betamine/game/command
@@ -8,10 +7,11 @@ import betamine/handlers/entity_handler
 import betamine/handlers/player_handler
 import betamine/mojang/api as mojang_api
 import betamine/protocol
+import betamine/protocol/common/entity/entity_metadata
 import betamine/protocol/common/game_event
-import betamine/protocol/common/hand
-import betamine/protocol/common/interaction
-import betamine/protocol/common/player_command_action
+import betamine/protocol/common/player/player_command_action
+import betamine/protocol/common/player/player_hand
+import betamine/protocol/common/player/player_interaction
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
@@ -72,7 +72,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          player.default,
+          player.default(),
         ),
         selector,
       )
@@ -191,11 +191,10 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         State(
           ..state,
           player: Player(
-            packet.name,
-            packet.uuid,
-            0,
-            profile,
-            metadata.default_player_metadata,
+            ..player.default(),
+            name: packet.name,
+            uuid: packet.uuid,
+            profile:,
           ),
         ),
       )
@@ -329,9 +328,20 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       let is_sneaking = case packet.action {
         player_command_action.StartSneaking -> True
         player_command_action.StopSneaking -> False
-        _ -> state.player.metadata.is_sneaking
+        _ ->
+          state.player.metadata.living_entity_metadata.entity_metadata.is_sneaking
       }
-      let metadata = metadata.PlayerMetadata(is_sneaking)
+      let metadata =
+        entity_metadata.PlayerMetadata(
+          ..entity_metadata.default_player_metadata(),
+          living_entity_metadata: entity_metadata.LivingEntityMetadata(
+            ..entity_metadata.default_living_entity_metadata(),
+            entity_metadata: entity_metadata.EntityMetadata(
+              ..entity_metadata.default_entity_metadata(),
+              is_sneaking:,
+            ),
+          ),
+        )
       process.send(
         state.game_subject,
         command.UpdatePlayerMetadata(state.player.uuid, metadata),
@@ -344,7 +354,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     }
     serverbound.Interact(packet) -> {
       case packet.interaction {
-        interaction.Attack -> {
+        player_interaction.Attack -> {
           process.send(
             state.game_subject,
             command.SwingPlayerArm(state.player.uuid, True),
@@ -358,7 +368,10 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     serverbound.SwingArm(packet) -> {
       process.send(
         state.game_subject,
-        command.SwingPlayerArm(state.player.uuid, packet.hand == hand.Dominant),
+        command.SwingPlayerArm(
+          state.player.uuid,
+          packet.hand == player_hand.Dominant,
+        ),
       )
       Ok(state)
     }

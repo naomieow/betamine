@@ -2,16 +2,18 @@ import betamine/protocol/decoder
 import betamine/protocol/error
 import gleam/result
 
-pub type Hand {
-  Dominant
-  NonDominant
+pub type ChatMode {
+  Enabled
+  CommandsOnly
+  Hidden
 }
 
 pub fn from_int(int: Int) {
   case int {
-    0 -> Ok(Dominant)
-    1 -> Ok(NonDominant)
-    int -> Error(error.InvalidEnumValue("Hand", 0, 1, int))
+    0 -> Ok(Enabled)
+    1 -> Ok(CommandsOnly)
+    2 -> Ok(Hidden)
+    _ -> Error(error.InvalidEnumValue("ChatMode", min: 0, max: 2, value: int))
   }
 }
 

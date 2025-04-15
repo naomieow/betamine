@@ -72,8 +72,8 @@ fn encode_paletted_container(
       |> encoder.var_int(id)
       |> encoder.var_int(0)
     }
-    Indirect(_) -> todo
-    Direct -> todo
+    Indirect(_) -> todo as "Indirect palettes not implemented"
+    Direct -> todo as "Direct palettes not implemented"
   }
 }
 

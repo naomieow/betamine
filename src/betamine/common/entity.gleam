@@ -1,7 +1,7 @@
-import betamine/common/entity_type.{type EntityType}
 import betamine/common/rotation.{type Rotation, Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3, Vector3}
+import betamine/protocol/common/entity/entity_type.{type EntityType}
 
 pub type Entity {
   Entity(

@@ -1,4 +1,3 @@
-import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import gleam/bit_array
 import gleam/bytes_tree.{type BytesTree}
@@ -39,10 +38,6 @@ pub fn string(tree: BytesTree, string: String) -> BytesTree {
   bytes_tree.append(tree, <<string:utf8>>)
 }
 
-pub fn identifier(tree: BytesTree, identifier: #(String, String)) -> BytesTree {
-  string(tree, identifier.0 <> ":" <> identifier.1)
-}
-
 pub fn byte(tree: BytesTree, int: Int) -> BytesTree {
   bytes_tree.append(tree, <<int:int-big-size(8)>>)
 }
@@ -76,10 +71,6 @@ pub fn position(tree: BytesTree, position: Vector3(Float)) -> BytesTree {
 
 pub fn angle(tree: BytesTree, angle: Float) -> BytesTree {
   byte(tree, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
-}
-
-pub fn uuid(tree: BytesTree, uuid: uuid.Uuid) -> BytesTree {
-  bytes_tree.append(tree, uuid.to_bit_array(uuid))
 }
 
 pub fn raw(tree: BytesTree, bit_array: BitArray) {
@@ -123,5 +114,22 @@ pub fn optional(
       bool(tree, True)
       |> when_some(value)
     }
+  }
+}
+
+pub fn bitmask(tree: BytesTree, bitmask: List(Bool)) {
+  bitmask_to_int(list.reverse(bitmask), 0) |> byte(tree, _)
+}
+
+fn bitmask_to_int(bitmask: List(Bool), accumulator: Int) {
+  case bitmask {
+    [bool, ..bitmask] -> {
+      let bit = case bool {
+        True -> 1
+        False -> 0
+      }
+      bitmask_to_int(bitmask, int.bitwise_shift_left(accumulator, 1) + bit)
+    }
+    [] -> int.bitwise_and(accumulator, 0b111111111)
   }
 }

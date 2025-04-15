@@ -1,3 +1,5 @@
+import betamine/protocol/error
+
 pub type EntityType {
   Allay
   AreaEffectCloud
@@ -398,6 +400,6 @@ pub fn from_id(id: Int) {
     127 -> Ok(ZombifiedPiglin)
     128 -> Ok(Player)
     129 -> Ok(FishingHook)
-    id -> todo
+    id -> Error(error.InvalidEnumValue("EntityType", 0, 129, id))
   }
 }

@@ -1,8 +1,8 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/game_mode
 import betamine/common/player.{type Player}
 import betamine/common/profile
 import betamine/handlers/entity_handler
+import betamine/protocol/common/player/player_game_mode
 import betamine/protocol/packets/clientbound.{type Packet}
 import gleam/option
 import gleam/set
@@ -22,7 +22,7 @@ pub fn handle_add(player: Player) -> Packet {
             player.name,
             properties: player.profile.properties,
           ),
-          game_mode: game_mode.Survival,
+          game_mode: player_game_mode.Survival,
           chat_session: option.None,
           display_name: option.Some(player.name),
         ),
@@ -38,7 +38,7 @@ pub fn handle_spawn(player: Player, entity: Entity) -> List(Packet) {
 pub fn handle_metadata_update(player: Player) -> Packet {
   clientbound.SetEntityMetadata(clientbound.SetEntityMetadataPacket(
     player.entity_id,
-    player.metadata.is_sneaking,
+    player.metadata.living_entity_metadata.entity_metadata.is_sneaking,
   ))
 }
 

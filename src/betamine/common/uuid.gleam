@@ -14,7 +14,7 @@ pub fn new() {
 
 pub const default = Uuid(<<0x40008000000000000000:size(128)>>)
 
-fn uuid_string_decoder() {
+fn from_string_decoder() {
   use string <- decode.then(decode.string)
   case from_string(string) {
     Ok(uuid) -> decode.success(uuid)
@@ -22,7 +22,7 @@ fn uuid_string_decoder() {
   }
 }
 
-fn uuid_bit_array_decoder() {
+fn from_bit_array_decoder() {
   use bit_array <- decode.then(decode.bit_array)
   case from_bit_array(bit_array) {
     Ok(uuid) -> decode.success(uuid)
@@ -30,7 +30,7 @@ fn uuid_bit_array_decoder() {
   }
 }
 
-fn uuid_int_decoder() {
+fn from_int_decoder() {
   use int <- decode.then(decode.int)
   case from_bit_array(<<int:size(128)>>) {
     Ok(uuid) -> decode.success(uuid)
@@ -39,9 +39,9 @@ fn uuid_int_decoder() {
 }
 
 pub fn decoder() -> decode.Decoder(Uuid) {
-  decode.one_of(uuid_string_decoder(), or: [
-    uuid_bit_array_decoder(),
-    uuid_int_decoder(),
+  decode.one_of(from_string_decoder(), or: [
+    from_bit_array_decoder(),
+    from_int_decoder(),
   ])
 }
 
