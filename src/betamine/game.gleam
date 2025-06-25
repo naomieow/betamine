@@ -26,21 +26,14 @@ type Game {
 pub fn start() -> Result(Subject(Command), actor.StartError) {
   let parent_subject = process.new_subject()
   let start_result =
-    actor.start_spec(actor.Spec(
-      init: fn() {
-        // create the subject the main process to send control messages on
-        let sim_subject = process.new_subject()
+    actor.start(
+      actor.new_with_initialiser(1000, fn(sim_subject) {
         process.send(parent_subject, sim_subject)
 
-        let selector =
-          process.new_selector()
-          |> process.selecting(sim_subject, function.identity)
-
-        actor.Ready(Game(dict.new(), dict.new()), selector)
-      },
-      init_timeout: 1000,
-      loop: loop,
-    ))
+        Ok(actor.initialised(Game(sessions: dict.new(), entities: dict.new())))
+      })
+      |> actor.on_message(loop),
+    )
 
   let assert Ok(game_subject) = process.receive(parent_subject, 1000)
 
@@ -50,7 +43,7 @@ pub fn start() -> Result(Subject(Command), actor.StartError) {
   }
 }
 
-fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
+fn loop(game: Game, command: Command) -> actor.Next(Game, Command) {
   case command {
     command.GetAllPlayers(subject) -> {
       dict.values(game.sessions)

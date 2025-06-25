@@ -12,12 +12,12 @@ pub fn start(game_subject: Subject(command.Command)) {
 }
 
 pub fn start_with_port(game_subject: Subject(command.Command), port: Int) {
-  glisten.handler(init(_, game_subject), handler)
+  glisten.new(init(_, game_subject), handler)
   |> glisten.with_close(fn(subject) {
     io.debug("Closing Connection.")
     process.send(subject, session.Disconnect)
   })
-  |> glisten.serve(port)
+  |> glisten.start(port)
 }
 
 fn init(
@@ -30,8 +30,8 @@ fn init(
   #(session_subject, None)
 }
 
-fn handler(message, session_subject: Subject(session.Packet), _conn) {
+fn handler(session_subject: Subject(session.Packet), message, _conn) {
   let assert Packet(data) = message
   process.send(session_subject, session.ServerBoundPacket(data))
-  actor.continue(session_subject)
+  glisten.continue(session_subject)
 }
