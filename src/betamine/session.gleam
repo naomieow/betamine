@@ -52,34 +52,6 @@ pub fn start(
   game_subject: Subject(command.Command),
   connection: glisten.Connection(BitArray),
 ) -> Result(actor.Started(Nil), actor.StartError) {
-  // actor.start_spec(actor.Spec(
-  //   init: fn() {
-  //     let subject_for_host = process.new_subject()
-  //     process.send(host_subject, subject_for_host)
-
-  //     let subject_for_game = process.new_subject()
-
-  //     let selector =
-  //       process.new_selector()
-  //       |> process.selecting(subject_for_host, function.identity)
-  //       |> process.selecting(subject_for_game, fn(msg) { GameUpdate(msg) })
-
-  //     actor.Ready(
-  //       State(
-  //         subject_for_host,
-  //         game_subject,
-  //         subject_for_game,
-  //         connection,
-  //         phase.Handshaking,
-  //         now_seconds(),
-  //         player.default,
-  //       ),
-  //       selector,
-  //     )
-  //   },
-  //   init_timeout: 1000,
-  //   loop: handle_message,
-  // ))
   actor.start(
     actor.new_with_initialiser(1000, fn(subject_for_host) {
       process.send(host_subject, subject_for_host)
