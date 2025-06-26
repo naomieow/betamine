@@ -1,26 +1,35 @@
-import betamine/common/rotation.{type Rotation, Rotation}
+import betamine/common/entity/entity_kind
+import betamine/common/entity/entity_metadata
+import betamine/common/rotation
 import betamine/common/uuid
-import betamine/common/vector3.{type Vector3, Vector3}
-import betamine/protocol/common/entity/entity_type.{type EntityType}
+import betamine/common/vector3
 
 pub type Entity {
   Entity(
     id: Int,
     uuid: uuid.Uuid,
-    entity_type: EntityType,
-    position: Vector3(Float),
-    rotation: Rotation,
+    kind: entity_kind.EntityKind,
+    position: vector3.Vector3(Float),
+    velocity: vector3.Vector3(Float),
+    rotation: rotation.Rotation,
     head_rotation: Float,
-    velocity: Vector3(Float),
+    metadata: entity_metadata.EntityMetadata,
   )
 }
 
-pub const default = Entity(
-  id: 0,
-  uuid: uuid.default,
-  entity_type: entity_type.Player,
-  position: Vector3(0.0, 0.0, 0.0),
-  rotation: Rotation(0.0, 0.0),
-  head_rotation: 0.0,
-  velocity: Vector3(0.0, 0.0, 0.0),
-)
+pub fn new(kind: entity_kind.EntityKind) {
+  Entity(
+    id: 0,
+    uuid: uuid.default,
+    kind:,
+    position: vector3.Vector3(0.0, 0.0, 0.0),
+    velocity: vector3.Vector3(0.0, 0.0, 0.0),
+    rotation: rotation.Rotation(0.0, 0.0),
+    head_rotation: 0.0,
+    metadata: entity_metadata.new(kind),
+  )
+}
+
+pub fn with_uuid(entity: Entity, uuid: uuid.Uuid) {
+  Entity(..entity, uuid:)
+}

@@ -1,11 +1,11 @@
+import betamine/common/entity/entity_pose
 import betamine/common/uuid
 import betamine/protocol/common/direction
-import betamine/protocol/common/entity/entity_pose
 import betamine/protocol/common/particle
 import gleam/option
 import nbeet
 
-pub type DataType {
+pub type MetadataDataType {
   Byte(Int)
   VarInt(Int)
   VarLong(Int)
@@ -37,4 +37,40 @@ pub type DataType {
   AramdilloState
   Vector3(Float, Float, Float)
   Quaternion(Float, Float, Float, Float)
+}
+
+pub fn get_index(data_type: MetadataDataType) {
+  case data_type {
+    Byte(..) -> 0
+    VarInt(..) -> 1
+    VarLong(..) -> 2
+    Float(..) -> 3
+    String(..) -> 4
+    TextComponent -> 5
+    OptionalTextComponent(..) -> 6
+    Slot -> 7
+    Boolean(..) -> 8
+    Rotations(..) -> 9
+    Position -> 10
+    OptionalPosition -> 11
+    Direction(..) -> 12
+    OptionalLivingEntityReference(..) -> 13
+    BlockState -> 14
+    OptionalBlockState(..) -> 15
+    NBT(..) -> 16
+    Particle(..) -> 17
+    Particles(..) -> 18
+    VillagerData(..) -> 18
+    OptionalVarInt(..) -> 19
+    Pose(..) -> 20
+    CatVariant(..) -> 21
+    WolfVariant(..) -> 22
+    FrogVariant(..) -> 23
+    OptionalGlobalPosition -> 24
+    PaintingVariant -> 25
+    SnifferState -> 26
+    AramdilloState -> 27
+    Vector3(..) -> 28
+    Quaternion(..) -> 29
+  }
 }

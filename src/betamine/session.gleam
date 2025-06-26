@@ -1,17 +1,19 @@
 import betamine/common/difficulty
-import betamine/common/player.{type Player, Player}
+import betamine/common/entity
+import betamine/common/entity/entity_hand
+import betamine/common/entity/entity_kind
+import betamine/common/entity/player.{type Player, Player}
+import betamine/common/entity/player/player_command_action
+import betamine/common/entity/player/player_hand
+import betamine/common/entity/player/player_interaction
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
 import betamine/handlers/entity_handler
 import betamine/handlers/player_handler
-import betamine/mojang/api as mojang_api
+import betamine/mojang/profile
 import betamine/protocol
-import betamine/protocol/common/entity/entity_metadata
 import betamine/protocol/common/game_event
-import betamine/protocol/common/player/player_command_action
-import betamine/protocol/common/player/player_hand
-import betamine/protocol/common/player/player_interaction
 import betamine/protocol/packets/clientbound
 import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
@@ -38,12 +40,12 @@ type State {
     connection: glisten.Connection(BitArray),
     phase: phase.Phase,
     last_keep_alive: Int,
-    player: Player,
+    player: player.Player,
   )
 }
 
 type Error {
-  UnknownServerBoundPacket(state: phase.Phase, serverbound.Packet)
+  UnknownServerBoundPacket(state: phase.Phase, packet: serverbound.Packet)
   UnknownProtocolState(state: Int)
 }
 
@@ -72,7 +74,7 @@ pub fn start(
           connection,
           phase.Handshaking,
           now_seconds(),
-          player.default(),
+          player.new(),
         ),
         selector,
       )
@@ -97,7 +99,7 @@ fn handle_message(packet: Packet, state: State) -> actor.Next(Packet, State) {
     Disconnect -> {
       process.send(
         state.game_subject,
-        command.RemovePlayer(state.player.uuid, state.subject_for_game),
+        command.RemovePlayer(state.player.entity.uuid, state.subject_for_game),
       )
       Ok(state)
     }
@@ -146,6 +148,8 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     _ -> state
   }
 
+  let player = state.player
+
   // io.debug("Receivied Packet: " <> string.inspect(packet))
 
   case packet {
@@ -178,7 +182,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.LoginStart(packet) -> {
-      let assert Ok(profile) = mojang_api.fetch_profile(packet.uuid)
+      let assert Ok(profile) = profile.fetch(packet.uuid)
       send(state, [
         clientbound.LoginSuccess(clientbound.LoginSuccessPacket(
           username: packet.name,
@@ -191,9 +195,11 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         State(
           ..state,
           player: Player(
-            ..player.default(),
             name: packet.name,
-            uuid: packet.uuid,
+            entity: entity.Entity(
+              ..entity.new(entity_kind.Player),
+              uuid: packet.uuid,
+            ),
             profile:,
           ),
         ),
@@ -242,8 +248,8 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
           command.SpawnPlayer(
             state.subject_for_game,
             _,
-            state.player.uuid,
-            state.player.name,
+            player.entity.uuid,
+            player.name,
           ),
           1000,
         )
@@ -251,7 +257,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         clientbound.Login(
           clientbound.LoginPacket(
             ..clientbound.default_login,
-            entity_id: player.entity_id,
+            entity_id: player.entity.id,
           ),
         ),
         player_handler.handle_add(player),
@@ -275,7 +281,9 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       ])
 
       process.call(state.game_subject, command.GetAllPlayers, 1000)
-      |> list.filter(fn(player) { { player.0 }.uuid != state.player.uuid })
+      |> list.filter(fn(other_player) {
+        { other_player.0 }.entity.uuid != player.entity.uuid
+      })
       |> list.map(fn(player) { player_handler.handle_spawn(player.0, player.1) })
       |> list.flatten
       |> send(state, _)
@@ -286,27 +294,19 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     serverbound.PlayerPosition(packet) -> {
       process.send(
         state.game_subject,
-        command.MoveEntity(
-          state.player.entity_id,
-          packet.position,
-          packet.on_ground,
-        ),
+        command.MoveEntity(player.entity.id, packet.position, packet.on_ground),
       )
       Ok(state)
     }
     serverbound.PlayerPositionAndRotation(packet) -> {
       process.send(
         state.game_subject,
-        command.MoveEntity(
-          state.player.entity_id,
-          packet.position,
-          packet.on_ground,
-        ),
+        command.MoveEntity(player.entity.id, packet.position, packet.on_ground),
       )
       process.send(
         state.game_subject,
         command.RotateEntity(
-          state.player.entity_id,
+          player.entity.id,
           packet.rotation,
           packet.on_ground,
         ),
@@ -317,7 +317,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       process.send(
         state.game_subject,
         command.RotateEntity(
-          state.player.entity_id,
+          player.entity.id,
           packet.rotation,
           packet.on_ground,
         ),
@@ -328,8 +328,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       let is_sneaking = case packet.action {
         player_command_action.StartSneaking -> True
         player_command_action.StopSneaking -> False
-        _ ->
-          state.player.metadata.living_entity_metadata.entity_metadata.is_sneaking
+        _ -> player.metadata.living_entity_metadata.entity_metadata.is_sneaking
       }
       let metadata =
         entity_metadata.PlayerMetadata(
@@ -344,9 +343,9 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         )
       process.send(
         state.game_subject,
-        command.UpdatePlayerMetadata(state.player.uuid, metadata),
+        command.UpdatePlayerMetadata(player.entity.uuid, metadata),
       )
-      Ok(State(..state, player: Player(..state.player, metadata:)))
+      Ok(State(..state, player: Player(..player, metadata:)))
     }
     serverbound.PlayerInput(packet) -> {
       io.debug(packet)
@@ -357,7 +356,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         player_interaction.Attack -> {
           process.send(
             state.game_subject,
-            command.SwingPlayerArm(state.player.uuid, True),
+            command.SwingPlayerArm(player.entity.uuid, True),
           )
         }
         _ -> Nil
@@ -369,8 +368,8 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       process.send(
         state.game_subject,
         command.SwingPlayerArm(
-          state.player.uuid,
-          packet.hand == player_hand.Dominant,
+          player.entity.uuid,
+          packet.hand == entity_hand.Dominant,
         ),
       )
       Ok(state)

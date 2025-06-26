@@ -1,4 +1,4 @@
-import betamine/common/vector3.{type Vector3, Vector3}
+import betamine/common/math/vector3
 import betamine/protocol/decoder
 import betamine/protocol/error
 import gleam/result
@@ -6,7 +6,7 @@ import gleam/result
 pub type PlayerInteraction {
   Interact(off_hand: Bool)
   Attack
-  InteractAt(target: Vector3(Float), off_hand: Bool)
+  InteractAt(target: vector3.Vector3(Float), off_hand: Bool)
 }
 
 pub fn decode(data: BitArray) {
@@ -22,7 +22,7 @@ pub fn decode(data: BitArray) {
       use #(y, data) <- result.try(decoder.float(data))
       use #(z, data) <- result.try(decoder.float(data))
       use #(off_hand, data) <- result.try(decoder.boolean(data))
-      Ok(#(InteractAt(Vector3(x, y, z), off_hand), data))
+      Ok(#(InteractAt(vector3.Vector3(x, y, z), off_hand), data))
     }
     value -> Error(error.InvalidEnumValue("Interaction", 0, 2, value))
   }

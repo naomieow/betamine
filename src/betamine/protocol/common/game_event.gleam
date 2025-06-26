@@ -1,4 +1,4 @@
-import betamine/protocol/common/player/player_game_mode.{type GameMode}
+import betamine/common/entity/player/player_game_mode.{type PlayerGameMode}
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
 import gleam/int
@@ -7,7 +7,7 @@ pub type GameEvent {
   NoRespawnBlockAvailable
   StartRain
   EndRain
-  ChangeGameMode(GameMode)
+  ChangeGameMode(PlayerGameMode)
   WinGame(play_credits: Bool)
   DemoEvent(DemoEvent)
   ArrowHitPlayer

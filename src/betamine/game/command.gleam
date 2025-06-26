@@ -1,10 +1,10 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/player.{type Player}
+import betamine/common/entity/entity_metadata
+import betamine/common/entity/player.{type Player}
 import betamine/common/rotation.{type Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import betamine/game/update
-import betamine/protocol/common/entity/entity_metadata
 import gleam/erlang/process.{type Subject}
 
 pub type Command {
@@ -21,7 +21,7 @@ pub type Command {
   GetAllPlayers(subject: Subject(List(#(Player, Entity))))
   UpdatePlayerMetadata(
     uuid: uuid.Uuid,
-    metadata: entity_metadata.PlayerMetadata,
+    metadata: entity_metadata.EntityMetadata,
   )
   SwingPlayerArm(uuid: uuid.Uuid, is_dominant: Bool)
   Shutdown

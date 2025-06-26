@@ -1,14 +1,14 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/player.{type Player}
+import betamine/common/entity/entity_animation
+import betamine/common/entity/entity_kind
+import betamine/common/entity/entity_metadata
+import betamine/common/entity/player.{type Player}
 import betamine/common/uuid
 import betamine/common/vector3
 import betamine/constants
 import betamine/game/command.{type Command}
 import betamine/game/update.{type Update}
-import betamine/mojang/api as mojang_api
-import betamine/protocol/common/entity/entity_animation
-import betamine/protocol/common/entity/entity_metadata
-import betamine/protocol/common/entity/entity_type
+import betamine/mojang/profile
 import gleam/dict
 import gleam/erlang/process.{type Subject}
 import gleam/function
@@ -56,36 +56,31 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
       dict.values(game.sessions)
       |> list.map(pair.second)
       |> list.map(fn(player) {
-        case dict.get(game.entities, player.entity_id) {
+        case dict.get(game.entities, player.entity.id) {
           Ok(entity) -> #(player, entity)
-          Error(_) -> #(player, entity.default)
+          Error(_) -> #(player, entity.new(entity_kind.Player))
         }
       })
       |> process.send(subject, _)
       actor.continue(game)
     }
     command.SpawnPlayer(subject, player_subject, uuid, name) -> {
-      let assert Ok(profile) = mojang_api.fetch_profile(uuid)
+      let assert Ok(profile) = profile.fetch(uuid)
       let entity =
         entity.Entity(
-          ..entity.default,
+          ..entity.new(entity_kind.Player),
           id: dict.size(game.entities),
           uuid:,
-          entity_type: entity_type.Player,
           position: constants.mc_player_spawn_point,
         )
-      let player =
-        player.Player(
-          name,
-          uuid,
-          entity.id,
-          profile,
-          entity_metadata.default_player_metadata(),
-        )
+      let player = player.Player(name, entity, profile)
       process.send(player_subject, #(player, entity))
       update_sessions(game, update.PlayerSpawned(player, entity))
       actor.continue(Game(
-        sessions: dict.insert(game.sessions, player.uuid, #(subject, player)),
+        sessions: dict.insert(game.sessions, player.entity.uuid, #(
+          subject,
+          player,
+        )),
         entities: dict.insert(game.entities, entity.id, entity),
       ))
     }
@@ -138,7 +133,7 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           update_sessions(game, update.PlayerDisconnected(player))
           Game(
             sessions: dict.delete(game.sessions, uuid),
-            entities: dict.delete(game.entities, player.entity_id),
+            entities: dict.delete(game.entities, player.entity.id),
           )
         }
       }
@@ -150,7 +145,8 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
       let game = case session {
         Error(_) -> game
         Ok(#(subject, player)) -> {
-          let player = player.Player(..player, metadata:)
+          todo as "Update metadata"
+          let player = player.Player(..player)
           update_sessions(game, update.PlayerMetadataUpdated(player))
           Game(
             sessions: dict.insert(game.sessions, uuid, #(subject, player)),
@@ -171,8 +167,8 @@ fn loop(command: Command, game: Game) -> actor.Next(Command, Game) {
           }
           update_other_sessions(
             game,
-            player.uuid,
-            update.EntityAnimation(player.entity_id, animation),
+            player.entity.uuid,
+            update.EntityAnimation(player.entity.id, animation),
           )
         }
       }
@@ -197,7 +193,7 @@ fn update_other_sessions(
   game.sessions
   |> dict.values
   |> list.each(fn(session) {
-    case uuid.is_equal(current_uuid, { session.1 }.uuid) {
+    case uuid.is_equal(current_uuid, { session.1 }.entity.uuid) {
       True -> Nil
       False -> process.send(session.0, update)
     }

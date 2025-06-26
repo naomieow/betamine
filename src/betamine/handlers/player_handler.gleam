@@ -1,8 +1,8 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/player.{type Player}
-import betamine/common/profile
+import betamine/common/entity/entity_metadata
+import betamine/common/entity/player.{type Player}
+import betamine/common/entity/player/player_game_mode
 import betamine/handlers/entity_handler
-import betamine/protocol/common/player/player_game_mode
 import betamine/protocol/packets/clientbound.{type Packet}
 import gleam/option
 import gleam/set
@@ -13,15 +13,11 @@ pub fn handle_add(player: Player) -> Packet {
       actions: set.from_list([clientbound.AddPlayer]),
       entries: [
         clientbound.PlayerInfoUpdateEntry(
-          uuid: player.uuid,
+          uuid: player.entity.uuid,
           name: player.name,
           latency: 0,
           visible_on_player_list: True,
-          profile: profile.Profile(
-            player.uuid,
-            player.name,
-            properties: player.profile.properties,
-          ),
+          profile: player.profile,
           game_mode: player_game_mode.Survival,
           chat_session: option.None,
           display_name: option.Some(player.name),
@@ -36,19 +32,21 @@ pub fn handle_spawn(player: Player, entity: Entity) -> List(Packet) {
 }
 
 pub fn handle_metadata_update(player: Player) -> Packet {
-  clientbound.SetEntityMetadata(clientbound.SetEntityMetadataPacket(
-    player.entity_id,
-    player.metadata.living_entity_metadata.entity_metadata.is_sneaking,
-  ))
+  todo
+  // entity_metadata.get(player.entity.metadata, entity_metadata.Sneaking(a))
+  // clientbound.SetEntityMetadata(clientbound.SetEntityMetadataPacket(
+  //   player.entity.id,
+  //   player.metadata.living_entity_metadata.entity_metadata.is_sneaking,
+  // ))
 }
 
 pub fn handle_disconnect(player: Player) -> List(Packet) {
   [
     clientbound.PlayerInfoRemove(
-      clientbound.PlayerInfoRemovePacket([player.uuid]),
+      clientbound.PlayerInfoRemovePacket([player.entity.uuid]),
     ),
     clientbound.RemoveEntities(
-      clientbound.RemoveEntitiesPacket([player.entity_id]),
+      clientbound.RemoveEntitiesPacket([player.entity.id]),
     ),
   ]
 }

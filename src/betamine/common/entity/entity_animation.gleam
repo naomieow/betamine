@@ -1,6 +1,3 @@
-import betamine/protocol/encoder
-import gleam/bytes_tree.{type BytesTree}
-
 pub type EntityAnimation {
   SwingDominantArm
   LeaveBed
@@ -17,8 +14,4 @@ pub fn to_int(animation: EntityAnimation) {
     CriticalEffect -> 4
     MagicalCriticalEffect -> 5
   }
-}
-
-pub fn encode(tree: BytesTree, animation: EntityAnimation) {
-  encoder.byte(tree, to_int(animation))
 }

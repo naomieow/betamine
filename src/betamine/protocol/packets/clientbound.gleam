@@ -1,5 +1,9 @@
+import betamine/common/chat/chat_session
 import betamine/common/chunk
 import betamine/common/difficulty.{type Difficulty}
+import betamine/common/entity/entity_animation
+import betamine/common/entity/entity_kind
+import betamine/common/entity/player/player_game_mode
 import betamine/common/identifier
 import betamine/common/profile
 import betamine/common/rotation.{type Rotation}
@@ -7,11 +11,7 @@ import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import betamine/constants
 import betamine/protocol/common
-import betamine/protocol/common/entity/entity_animation
-import betamine/protocol/common/entity/entity_type
 import betamine/protocol/common/game_event
-import betamine/protocol/common/player/chat/chat_session
-import betamine/protocol/common/player/player_game_mode
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
 import gleam/int
@@ -537,7 +537,7 @@ pub type PlayerInfoUpdateEntry {
     latency: Int,
     visible_on_player_list: Bool,
     profile: profile.Profile,
-    game_mode: player_game_mode.GameMode,
+    game_mode: player_game_mode.PlayerGameMode,
     chat_session: Option(chat_session.ChatSession),
     display_name: Option(String),
   )
@@ -585,7 +585,7 @@ pub type SpawnEntityPacket {
   SpawnEntityPacket(
     id: Int,
     uuid: uuid.Uuid,
-    entity_type: entity_type.EntityType,
+    entity_type: entity_kind.EntityKind,
     position: Vector3(Float),
     rotation: Rotation,
     head_rotation: Float,
@@ -597,7 +597,7 @@ fn encode_spawn_entity(tree: BytesTree, packet: SpawnEntityPacket) {
   tree
   |> encoder.var_int(packet.id)
   |> common.encode_uuid(packet.uuid)
-  |> encoder.var_int(packet.entity_type |> entity_type.to_id)
+  |> encoder.var_int(packet.entity_type |> entity_kind.to_id)
   |> vector3.fold(packet.position, _, encoder.double)
   |> encoder.angle(packet.rotation.pitch)
   |> encoder.angle(packet.rotation.yaw)
@@ -705,5 +705,5 @@ pub type AnimateEntityPacket {
 pub fn encode_animate_entity(tree: BytesTree, packet: AnimateEntityPacket) {
   tree
   |> encoder.var_int(packet.entity_id)
-  |> entity_animation.encode(packet.animation)
+  |> encoder.byte(entity_animation.to_int(packet.animation))
 }

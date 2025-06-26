@@ -1,6 +1,6 @@
 import betamine/protocol/error
 
-pub type EntityType {
+pub type EntityKind {
   Allay
   AreaEffectCloud
   Armadillo
@@ -133,8 +133,8 @@ pub type EntityType {
   FishingHook
 }
 
-pub fn to_id(entity_type: EntityType) {
-  case entity_type {
+pub fn to_id(kind: EntityKind) {
+  case kind {
     Allay -> 0
     AreaEffectCloud -> 1
     Armadillo -> 2
@@ -400,6 +400,6 @@ pub fn from_id(id: Int) {
     127 -> Ok(ZombifiedPiglin)
     128 -> Ok(Player)
     129 -> Ok(FishingHook)
-    id -> Error(error.InvalidEnumValue("EntityType", 0, 129, id))
+    id -> Error(error.InvalidEnumValue("EntityKind", 0, 129, id))
   }
 }

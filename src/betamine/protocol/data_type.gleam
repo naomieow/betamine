@@ -26,6 +26,6 @@ pub type DataType {
   PrefixedArray(List(DataType))
   Enum(DataType)
   BitSet(List(Int))
-  FixedBitSet(length: Int, List(Int))
+  FixedBitSet(length: Int, bits: List(Int))
   ByteArray(BitArray)
 }
