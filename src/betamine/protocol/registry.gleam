@@ -9,7 +9,7 @@ pub fn send(connection: Connection(BitArray)) {
     "wolf_variant_registry.bin", "painting_variant_registry.bin",
     "dimension_registry.bin", "damage_type_registry.bin",
     "banner_pattern_registry.bin", "enchantment_registry.bin",
-    "jukebox_registry.bin", "item_registry.bin",
+    "jukebox_registry.bin",
   ])
 }
 
