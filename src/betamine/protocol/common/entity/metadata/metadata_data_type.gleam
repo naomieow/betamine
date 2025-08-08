@@ -1,4 +1,5 @@
 import betamine/common/entity/entity_pose
+import betamine/common/text_component
 import betamine/common/uuid
 import betamine/protocol/common/direction
 import betamine/protocol/common/particle
@@ -11,8 +12,8 @@ pub type MetadataDataType {
   VarLong(Int)
   Float(Float)
   String(String)
-  TextComponent
-  OptionalTextComponent(option.Option(Nil))
+  TextComponent(text_component.TextComponent)
+  OptionalTextComponent(option.Option(text_component.TextComponent))
   Slot
   Boolean(Bool)
   Rotations(x: Float, y: Float, z: Float)
@@ -46,7 +47,7 @@ pub fn get_index(data_type: MetadataDataType) {
     VarLong(..) -> 2
     Float(..) -> 3
     String(..) -> 4
-    TextComponent -> 5
+    TextComponent(..) -> 5
     OptionalTextComponent(..) -> 6
     Slot -> 7
     Boolean(..) -> 8

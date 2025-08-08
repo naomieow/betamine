@@ -53,38 +53,32 @@ pub fn start(
   host_subject: Subject(Subject(Packet)),
   game_subject: Subject(command.Command),
   connection: glisten.Connection(BitArray),
-) -> Result(Subject(Packet), actor.StartError) {
-  actor.start_spec(actor.Spec(
-    init: fn() {
-      let subject_for_host = process.new_subject()
+) -> Result(actor.Started(Nil), actor.StartError) {
+  actor.start(
+    actor.new_with_initialiser(1000, fn(subject_for_host) {
       process.send(host_subject, subject_for_host)
-
       let subject_for_game = process.new_subject()
+      let phase = phase.Handshaking
+      let last_keep_alive = now_seconds()
+      let player = player.default
 
-      let selector =
-        process.new_selector()
-        |> process.selecting(subject_for_host, function.identity)
-        |> process.selecting(subject_for_game, fn(msg) { GameUpdate(msg) })
-
-      actor.Ready(
-        State(
-          subject_for_host,
-          game_subject,
-          subject_for_game,
-          connection,
-          phase.Handshaking,
-          now_seconds(),
-          player.new(),
-        ),
-        selector,
+      Ok(
+        actor.initialised(State(
+          subject_for_host:,
+          game_subject:,
+          subject_for_game:,
+          connection:,
+          phase:,
+          last_keep_alive:,
+          player:,
+        )),
       )
-    },
-    init_timeout: 1000,
-    loop: handle_message,
-  ))
+    })
+    |> actor.on_message(handle_message),
+  )
 }
 
-fn handle_message(packet: Packet, state: State) -> actor.Next(Packet, State) {
+fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
   let result = case packet {
     ServerBoundPacket(data) -> {
       case protocol.decode_serverbound(state.phase, data) {
@@ -243,16 +237,12 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     // Acknowledge Finish Configuration
     serverbound.AcknowledgeFinishConfiguration -> {
       let #(player, entity) =
-        process.call(
-          state.game_subject,
-          command.SpawnPlayer(
-            state.subject_for_game,
-            _,
-            player.entity.uuid,
-            player.name,
-          ),
-          1000,
-        )
+        process.call(state.game_subject, 1000, command.SpawnPlayer(
+          state.subject_for_game,
+          _,
+          player.entity.uuid,
+          state.player.name,
+        ))
       send(state, [
         clientbound.Login(
           clientbound.LoginPacket(
@@ -280,7 +270,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         ),
       ])
 
-      process.call(state.game_subject, command.GetAllPlayers, 1000)
+      process.call(state.game_subject, 1000, command.GetAllPlayers)
       |> list.filter(fn(other_player) {
         { other_player.0 }.entity.uuid != player.entity.uuid
       })
