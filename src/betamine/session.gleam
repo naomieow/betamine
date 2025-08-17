@@ -1,7 +1,8 @@
 import betamine/common/difficulty
-import betamine/common/entity
+import betamine/common/entity.{type Entity}
 import betamine/common/entity/entity_hand
 import betamine/common/entity/entity_kind
+import betamine/common/entity/entity_metadata
 import betamine/common/entity/player.{type Player, Player}
 import betamine/common/entity/player/player_command_action
 import betamine/common/entity/player/player_hand
@@ -60,7 +61,7 @@ pub fn start(
       let subject_for_game = process.new_subject()
       let phase = phase.Handshaking
       let last_keep_alive = now_seconds()
-      let player = player.default
+      let player = player.new()
 
       Ok(
         actor.initialised(State(
@@ -318,24 +319,22 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       let is_sneaking = case packet.action {
         player_command_action.StartSneaking -> True
         player_command_action.StopSneaking -> False
-        _ -> player.metadata.living_entity_metadata.entity_metadata.is_sneaking
+        _ -> entity_metadata.get_on_fire(player.entity.metadata)
       }
-      let metadata =
-        entity_metadata.PlayerMetadata(
-          ..entity_metadata.default_player_metadata(),
-          living_entity_metadata: entity_metadata.LivingEntityMetadata(
-            ..entity_metadata.default_living_entity_metadata(),
-            entity_metadata: entity_metadata.EntityMetadata(
-              ..entity_metadata.default_entity_metadata(),
-              is_sneaking:,
-            ),
-          ),
-        )
+      let metadata = entity_metadata.set(player.entity.metadata)
       process.send(
         state.game_subject,
-        command.UpdatePlayerMetadata(player.entity.uuid, metadata),
+        command.UpdatePlayerMetadata(player.entity.uuid, player.entity.metadata),
       )
-      Ok(State(..state, player: Player(..player, metadata:)))
+      Ok(
+        State(
+          ..state,
+          player: Player(
+            ..player,
+            entity: entity.Entity(..player.entity, metadata:),
+          ),
+        ),
+      )
     }
     serverbound.PlayerInput(packet) -> {
       io.debug(packet)

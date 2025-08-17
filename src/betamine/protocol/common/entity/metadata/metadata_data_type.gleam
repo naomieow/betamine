@@ -27,7 +27,7 @@ pub type MetadataDataType {
   Particle(particle.Particle)
   Particles(List(particle.Particle))
   VillagerData(villager_type: Int, villager_profession: Int, level: Int)
-  OptionalVarInt(Int)
+  OptionalVarInt(option.Option(Int))
   Pose(entity_pose.EntityPose)
   CatVariant(Int)
   WolfVariant(Int)

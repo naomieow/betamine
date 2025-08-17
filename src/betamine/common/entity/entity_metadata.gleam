@@ -154,13 +154,12 @@ fn default_pig() {
   [BoostTime(0), ..default_animal()]
 }
 
-// pub fn get(metadata: EntityMetadata, value: Value) {
-//   dict.has_key
-//   dict.get(metadata.values, index)
-// }
-
 pub fn set(metadata: EntityMetadata, value: Value) {
-  todo
+  let index = get_index(value)
+  EntityMetadata(
+    dict.insert(metadata.values, index, value),
+    set.insert(metadata.dirty, index),
+  )
 }
 
 pub fn get_on_fire(metadata: EntityMetadata) {
@@ -169,6 +168,19 @@ pub fn get_on_fire(metadata: EntityMetadata) {
     Ok(value) -> {
       case value {
         EntityBitMask(on_fire:, ..) -> on_fire
+        _ -> False
+      }
+    }
+    Error(_) -> False
+  }
+}
+
+pub fn get_sneaking(metadata: EntityMetadata) {
+  let result = dict.get(metadata.values, 0)
+  case result {
+    Ok(value) -> {
+      case value {
+        EntityBitMask(sneaking:, ..) -> sneaking
         _ -> False
       }
     }
