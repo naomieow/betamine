@@ -1,4 +1,7 @@
 import betamine/common/entity/entity_pose
+import betamine/common/global_position
+import betamine/common/position
+import betamine/common/slot
 import betamine/common/text_component
 import betamine/common/uuid
 import betamine/protocol/common/direction
@@ -14,11 +17,11 @@ pub type MetadataDataType {
   String(String)
   TextComponent(text_component.TextComponent)
   OptionalTextComponent(option.Option(text_component.TextComponent))
-  Slot
+  Slot(slot.Slot)
   Boolean(Bool)
   Rotations(x: Float, y: Float, z: Float)
-  Position
-  OptionalPosition
+  Position(position.Position)
+  OptionalPosition(option.Option(position.Position))
   Direction(direction.Direction)
   OptionalLivingEntityReference(option.Option(uuid.Uuid))
   BlockState
@@ -32,7 +35,7 @@ pub type MetadataDataType {
   CatVariant(Int)
   WolfVariant(Int)
   FrogVariant(Int)
-  OptionalGlobalPosition
+  OptionalGlobalPosition(option.Option(global_position.GlobalPosition))
   PaintingVariant
   SnifferState
   AramdilloState
@@ -49,11 +52,11 @@ pub fn get_index(data_type: MetadataDataType) {
     String(..) -> 4
     TextComponent(..) -> 5
     OptionalTextComponent(..) -> 6
-    Slot -> 7
+    Slot(..) -> 7
     Boolean(..) -> 8
     Rotations(..) -> 9
-    Position -> 10
-    OptionalPosition -> 11
+    Position(..) -> 10
+    OptionalPosition(..) -> 11
     Direction(..) -> 12
     OptionalLivingEntityReference(..) -> 13
     BlockState -> 14
@@ -67,7 +70,7 @@ pub fn get_index(data_type: MetadataDataType) {
     CatVariant(..) -> 21
     WolfVariant(..) -> 22
     FrogVariant(..) -> 23
-    OptionalGlobalPosition -> 24
+    OptionalGlobalPosition(..) -> 24
     PaintingVariant -> 25
     SnifferState -> 26
     AramdilloState -> 27

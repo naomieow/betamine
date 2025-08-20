@@ -23,7 +23,9 @@ import gleam/erlang/process.{type Subject}
 import gleam/function
 import gleam/io
 import gleam/list
+import gleam/option
 import gleam/otp/actor
+import gleam/result
 import gleam/string
 import glisten
 
@@ -316,16 +318,28 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.PlayerCommand(packet) -> {
-      let is_sneaking = case packet.action {
-        player_command_action.StartSneaking -> True
-        player_command_action.StopSneaking -> False
-        _ -> entity_metadata.get_on_fire(player.entity.metadata)
-      }
-      let metadata = entity_metadata.set(player.entity.metadata)
+      use sneaking <-
+        fn(apply: fn(Bool) -> Result(State, Error)) -> Result(State, Error) {
+          case packet.action {
+            player_command_action.StartSneaking -> apply(True)
+            player_command_action.StopSneaking -> apply(False)
+            _ -> Ok(state)
+          }
+        }
+
+      let metadata =
+        entity_metadata.set(
+          player.entity.metadata,
+          entity_metadata.sneaking,
+          sneaking,
+        )
+        |> result.unwrap(player.entity.metadata)
+
       process.send(
         state.game_subject,
-        command.UpdatePlayerMetadata(player.entity.uuid, player.entity.metadata),
+        command.UpdatePlayerMetadata(player.entity.uuid, metadata),
       )
+
       Ok(
         State(
           ..state,

@@ -5,7 +5,7 @@ pub type EntityMetadata =
   List(#(Int, metadata_data_type.MetadataDataType))
 
 pub fn encode(metadata: EntityMetadata) {
-  list
+  todo
 }
 
 fn encode_data_type() {
