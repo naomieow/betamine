@@ -1,18 +1,18 @@
 import betamine/common/difficulty
-import betamine/common/entity.{type Entity}
+
 import betamine/common/entity/entity_hand
-import betamine/common/entity/entity_kind
-import betamine/common/entity/entity_metadata
-import betamine/common/entity/player.{type Player, Player}
+
 import betamine/common/entity/player/player_command_action
-import betamine/common/entity/player/player_hand
+
 import betamine/common/entity/player/player_interaction
+import betamine/common/profile
+import betamine/common/uuid
 import betamine/constants
 import betamine/game/command
 import betamine/game/update
 import betamine/handlers/entity_handler
 import betamine/handlers/player_handler
-import betamine/mojang/profile
+import betamine/mojang
 import betamine/protocol
 import betamine/protocol/common/game_event
 import betamine/protocol/packets/clientbound
@@ -20,12 +20,9 @@ import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import betamine/protocol/registry
 import gleam/erlang/process.{type Subject}
-import gleam/function
 import gleam/io
 import gleam/list
-import gleam/option
 import gleam/otp/actor
-import gleam/result
 import gleam/string
 import glisten
 
@@ -43,7 +40,8 @@ type State {
     connection: glisten.Connection(BitArray),
     phase: phase.Phase,
     last_keep_alive: Int,
-    player: player.Player,
+    profile: profile.Profile,
+    uuid: uuid.Uuid,
   )
 }
 
@@ -61,19 +59,16 @@ pub fn start(
     actor.new_with_initialiser(1000, fn(subject_for_host) {
       process.send(host_subject, subject_for_host)
       let subject_for_game = process.new_subject()
-      let phase = phase.Handshaking
-      let last_keep_alive = now_seconds()
-      let player = player.new()
-
       Ok(
         actor.initialised(State(
           subject_for_host:,
           game_subject:,
           subject_for_game:,
           connection:,
-          phase:,
-          last_keep_alive:,
-          player:,
+          phase: phase.Handshaking,
+          last_keep_alive: now_seconds(),
+          profile: profile.default(),
+          uuid: uuid.default,
         )),
       )
     })
@@ -87,7 +82,7 @@ fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
       case protocol.decode_serverbound(state.phase, data) {
         Ok(packet) -> handle_server_bound(packet, state)
         Error(error) -> {
-          io.debug(error)
+          echo error
           Ok(state)
         }
       }
@@ -96,7 +91,7 @@ fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
     Disconnect -> {
       process.send(
         state.game_subject,
-        command.RemovePlayer(state.player.entity.uuid, state.subject_for_game),
+        command.RemovePlayer(state.uuid, state.subject_for_game),
       )
       Ok(state)
     }
@@ -110,18 +105,15 @@ fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
 fn handle_error(error: Error, state: State) {
   case error {
     UnknownServerBoundPacket(phase, packet) -> {
-      io.debug(
-        "Unhandled Packet w/ Phase: "
+      echo "Unhandled Packet w/ Phase: "
         <> string.inspect(phase)
         <> " & Packet:"
-        <> string.inspect(packet),
-      )
+        <> string.inspect(packet)
       actor.continue(state)
     }
     UnknownProtocolState(phase) -> {
-      io.debug(
-        "Client Requested An Unknown Protocol State: " <> string.inspect(phase),
-      )
+      echo "Client Requested An Unknown Protocol State: "
+        <> string.inspect(phase)
       actor.continue(state)
     }
   }
@@ -144,8 +136,6 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     }
     _ -> state
   }
-
-  let player = state.player
 
   // io.debug("Receivied Packet: " <> string.inspect(packet))
 
@@ -179,7 +169,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       Ok(state)
     }
     serverbound.LoginStart(packet) -> {
-      let assert Ok(profile) = profile.fetch(packet.uuid)
+      let assert Ok(profile) = mojang.fetch_profile(packet.uuid)
       send(state, [
         clientbound.LoginSuccess(clientbound.LoginSuccessPacket(
           username: packet.name,
@@ -188,19 +178,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
           strict_error_handling: False,
         )),
       ])
-      Ok(
-        State(
-          ..state,
-          player: Player(
-            name: packet.name,
-            entity: entity.Entity(
-              ..entity.new(entity_kind.Player),
-              uuid: packet.uuid,
-            ),
-            profile:,
-          ),
-        ),
-      )
+      Ok(State(..state, profile:, uuid: packet.uuid))
     }
     serverbound.LoginAcknowledged ->
       Ok(State(..state, phase: phase.Configuration))
@@ -243,8 +221,8 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         process.call(state.game_subject, 1000, command.SpawnPlayer(
           state.subject_for_game,
           _,
-          player.entity.uuid,
-          state.player.name,
+          state.uuid,
+          state.profile.name,
         ))
       send(state, [
         clientbound.Login(
@@ -280,40 +258,32 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
       |> list.map(fn(player) { player_handler.handle_spawn(player.0, player.1) })
       |> list.flatten
       |> send(state, _)
-      Ok(State(..state, phase: phase.Play, player:))
+      Ok(State(..state, phase: phase.Play))
     }
     serverbound.ConfirmTeleport(_) -> Ok(state)
     serverbound.KeepAlive(_) -> Ok(state)
     serverbound.PlayerPosition(packet) -> {
       process.send(
         state.game_subject,
-        command.MoveEntity(player.entity.id, packet.position, packet.on_ground),
+        command.MovePlayer(state.uuid, packet.position, packet.on_ground),
       )
       Ok(state)
     }
     serverbound.PlayerPositionAndRotation(packet) -> {
       process.send(
         state.game_subject,
-        command.MoveEntity(player.entity.id, packet.position, packet.on_ground),
+        command.MovePlayer(state.uuid, packet.position, packet.on_ground),
       )
       process.send(
         state.game_subject,
-        command.RotateEntity(
-          player.entity.id,
-          packet.rotation,
-          packet.on_ground,
-        ),
+        command.RotatePlayer(state.uuid, packet.rotation, packet.on_ground),
       )
       Ok(state)
     }
     serverbound.PlayerRotation(packet) -> {
       process.send(
         state.game_subject,
-        command.RotateEntity(
-          player.entity.id,
-          packet.rotation,
-          packet.on_ground,
-        ),
+        command.RotatePlayer(state.uuid, packet.rotation, packet.on_ground),
       )
       Ok(state)
     }
@@ -327,31 +297,15 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
           }
         }
 
-      let metadata =
-        entity_metadata.set(
-          player.entity.metadata,
-          entity_metadata.sneaking,
-          sneaking,
-        )
-        |> result.unwrap(player.entity.metadata)
-
       process.send(
         state.game_subject,
-        command.UpdatePlayerMetadata(player.entity.uuid, metadata),
+        command.UpdatePlayerSneaking(state.uuid, sneaking),
       )
 
-      Ok(
-        State(
-          ..state,
-          player: Player(
-            ..player,
-            entity: entity.Entity(..player.entity, metadata:),
-          ),
-        ),
-      )
+      Ok(state)
     }
     serverbound.PlayerInput(packet) -> {
-      io.debug(packet)
+      echo packet
       Ok(state)
     }
     serverbound.Interact(packet) -> {
@@ -359,21 +313,18 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
         player_interaction.Attack -> {
           process.send(
             state.game_subject,
-            command.SwingPlayerArm(player.entity.uuid, True),
+            command.SwingPlayerArm(state.uuid, True),
           )
         }
         _ -> Nil
       }
-      io.debug(packet)
+      echo packet
       Ok(state)
     }
     serverbound.SwingArm(packet) -> {
       process.send(
         state.game_subject,
-        command.SwingPlayerArm(
-          player.entity.uuid,
-          packet.hand == entity_hand.Dominant,
-        ),
+        command.SwingPlayerArm(state.uuid, packet.hand == entity_hand.Dominant),
       )
       Ok(state)
     }
@@ -383,7 +334,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
 fn send(state: State, packets: List(clientbound.Packet)) {
   io.println(
     "Sending Packets To: "
-    <> state.player.name
+    <> state.profile.name
     <> " w/ State: "
     <> string.inspect(state.phase),
   )

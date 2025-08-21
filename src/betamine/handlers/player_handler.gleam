@@ -5,7 +5,6 @@ import betamine/common/entity/player/player_game_mode
 import betamine/handlers/entity_handler
 import betamine/protocol/packets/clientbound.{type Packet}
 import gleam/option
-import gleam/result
 import gleam/set
 
 pub fn handle_add(player: Player) -> Packet {
@@ -35,8 +34,7 @@ pub fn handle_spawn(player: Player, entity: Entity) -> List(Packet) {
 pub fn handle_metadata_update(player: Player) -> Packet {
   clientbound.SetEntityMetadata(clientbound.SetEntityMetadataPacket(
     player.entity.id,
-    entity_metadata.get(player.entity.metadata, entity_metadata.sneaking)
-      |> result.unwrap(False),
+    entity_metadata.to_protocol(player.entity.metadata),
   ))
 }
 

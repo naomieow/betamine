@@ -1,5 +1,4 @@
 import betamine/common/entity.{type Entity}
-import betamine/common/entity/entity_metadata
 import betamine/common/entity/player.{type Player}
 import betamine/common/rotation.{type Rotation}
 import betamine/common/uuid
@@ -16,13 +15,10 @@ pub type Command {
     name: String,
   )
   RemovePlayer(uuid: uuid.Uuid, subject: Subject(update.Update))
-  MoveEntity(entity_id: Int, position: Vector3(Float), on_ground: Bool)
-  RotateEntity(entity_id: Int, rotation: Rotation, on_ground: Bool)
+  MovePlayer(uuid: uuid.Uuid, position: Vector3(Float), on_ground: Bool)
+  RotatePlayer(uuid: uuid.Uuid, rotation: Rotation, on_ground: Bool)
   GetAllPlayers(subject: Subject(List(#(Player, Entity))))
-  UpdatePlayerMetadata(
-    uuid: uuid.Uuid,
-    metadata: entity_metadata.EntityMetadata,
-  )
+  UpdatePlayerSneaking(uuid: uuid.Uuid, sneaking: Bool)
   SwingPlayerArm(uuid: uuid.Uuid, is_dominant: Bool)
   Shutdown
 }

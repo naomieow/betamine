@@ -11,6 +11,7 @@ import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import betamine/constants
 import betamine/protocol/common
+import betamine/protocol/common/entity/entity_metadata
 import betamine/protocol/common/game_event
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
@@ -671,28 +672,12 @@ fn encode_play_keep_alive(tree: BytesTree, packet: PlayKeepAlivePacket) {
 
 // An exteremly simplified version of entity metadata.
 pub type SetEntityMetadataPacket {
-  SetEntityMetadataPacket(entity_id: Int, is_sneaking: Bool)
+  SetEntityMetadataPacket(entity_id: Int, metadata: entity_metadata.Metadata)
 }
 
 fn encode_set_entity_metadata(tree: BytesTree, packet: SetEntityMetadataPacket) {
   encoder.var_int(tree, packet.entity_id)
-  |> encoder.byte(0)
-  |> encoder.var_int(0)
-  |> encoder.byte(case packet.is_sneaking {
-    True -> 0b00000010
-    False -> 0
-  })
-  // Pose
-  |> encoder.byte(6)
-  |> encoder.var_int(21)
-  |> encoder.byte(case packet.is_sneaking {
-    // Sneaking
-    True -> 5
-    // Standing
-    False -> 0
-  })
-  // End
-  |> encoder.byte(0xFF)
+  |> entity_metadata.encode(packet.metadata)
 }
 
 pub type AnimateEntityPacket {

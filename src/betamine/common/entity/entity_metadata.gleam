@@ -5,9 +5,7 @@ import betamine/common/entity/entity_pose
 import betamine/common/particle
 import betamine/common/position
 import betamine/common/text_component
-import betamine/protocol/common/entity/metadata/metadata_data_type.{
-  type MetadataDataType,
-}
+import betamine/protocol/common/entity/entity_metadata.{type DataType}
 import gleam/dict
 import gleam/int
 import gleam/option
@@ -16,7 +14,7 @@ import gleam/set
 import nbeet
 
 pub opaque type EntityMetadata {
-  EntityMetadata(values: dict.Dict(Int, MetadataDataType), dirty: set.Set(Int))
+  EntityMetadata(values: dict.Dict(Int, DataType), dirty: set.Set(Int))
 }
 
 pub opaque type MetadataAccessor(value) {
@@ -39,7 +37,20 @@ pub fn get(metadata: EntityMetadata, accessor: MetadataAccessor(value)) {
   accessor.getter(metadata, accessor.index)
 }
 
-fn set_value(metadata: EntityMetadata, index: Int, value: MetadataDataType) {
+pub fn to_protocol(metadata: EntityMetadata) {
+  set.fold(metadata.dirty, dict.new(), fn(dict, index) {
+    case dict.get(metadata.values, index) {
+      Ok(data_type) -> dict.insert(dict, index, data_type)
+      Error(_) -> dict
+    }
+  })
+}
+
+pub fn clean(metadata: EntityMetadata) {
+  EntityMetadata(metadata.values, set.new())
+}
+
+fn set_value(metadata: EntityMetadata, index: Int, value: DataType) {
   let values = dict.insert(metadata.values, index, value)
   let dirty = set.insert(metadata.dirty, index)
   Ok(EntityMetadata(values:, dirty:))
@@ -47,14 +58,14 @@ fn set_value(metadata: EntityMetadata, index: Int, value: MetadataDataType) {
 
 fn get_byte(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.Byte(int)) -> Ok(int)
+    Ok(entity_metadata.Byte(int)) -> Ok(int)
     _ -> Error(Nil)
   }
 }
 
 fn set_byte(metadata: EntityMetadata, index: Int, byte: Int) {
   case get_byte(metadata, index) {
-    Ok(_) -> set_value(metadata, index, metadata_data_type.Byte(byte))
+    Ok(_) -> set_value(metadata, index, entity_metadata.Byte(byte))
     _ -> Error(Nil)
   }
 }
@@ -139,35 +150,35 @@ fn set_bit_8(metadata: EntityMetadata, index: Int, value: Bool) {
 
 fn get_float(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.Float(int)) -> Ok(int)
+    Ok(entity_metadata.Float(int)) -> Ok(int)
     _ -> Error(Nil)
   }
 }
 
 fn set_float(metadata: EntityMetadata, index: Int, float: Float) {
   case get_float(metadata, index) {
-    Ok(_) -> set_value(metadata, index, metadata_data_type.Float(float))
+    Ok(_) -> set_value(metadata, index, entity_metadata.Float(float))
     _ -> Error(Nil)
   }
 }
 
 fn get_var_int(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.VarInt(int)) -> Ok(int)
+    Ok(entity_metadata.VarInt(int)) -> Ok(int)
     _ -> Error(Nil)
   }
 }
 
 fn set_var_int(metadata: EntityMetadata, index: Int, var_int: Int) {
   case get_var_int(metadata, index) {
-    Ok(_) -> set_value(metadata, index, metadata_data_type.VarInt(var_int))
+    Ok(_) -> set_value(metadata, index, entity_metadata.VarInt(var_int))
     _ -> Error(Nil)
   }
 }
 
 fn get_optional_text_component(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.OptionalTextComponent(optional_text_component)) ->
+    Ok(entity_metadata.OptionalTextComponent(optional_text_component)) ->
       Ok(optional_text_component)
     _ -> Error(Nil)
   }
@@ -183,28 +194,28 @@ fn set_optional_text_component(
 
 fn get_boolean(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.Boolean(bool)) -> Ok(bool)
+    Ok(entity_metadata.Boolean(bool)) -> Ok(bool)
     _ -> Error(Nil)
   }
 }
 
 fn set_boolean(metadata: EntityMetadata, index: Int, boolean: Bool) {
   case get_boolean(metadata, index) {
-    Ok(_) -> set_value(metadata, index, metadata_data_type.Boolean(boolean))
+    Ok(_) -> set_value(metadata, index, entity_metadata.Boolean(boolean))
     _ -> Error(Nil)
   }
 }
 
 fn get_pose(metadata: EntityMetadata, index: Int) {
   case dict.get(metadata.values, index) {
-    Ok(metadata_data_type.Pose(pose)) -> Ok(pose)
+    Ok(entity_metadata.Pose(pose)) -> Ok(pose)
     _ -> Error(Nil)
   }
 }
 
 fn set_pose(metadata: EntityMetadata, index: Int, pose: entity_pose.EntityPose) {
   case get_pose(metadata, index) {
-    Ok(_) -> set_value(metadata, index, metadata_data_type.Pose(pose))
+    Ok(_) -> set_value(metadata, index, entity_metadata.Pose(pose))
     _ -> Error(Nil)
   }
 }
@@ -380,38 +391,38 @@ pub fn new(kind: entity_kind.EntityKind) {
 
 fn default_entity() {
   [
-    #(0, metadata_data_type.Byte(0)),
-    #(1, metadata_data_type.VarInt(300)),
-    #(2, metadata_data_type.OptionalTextComponent(option.None)),
-    #(3, metadata_data_type.Boolean(False)),
-    #(4, metadata_data_type.Boolean(False)),
-    #(5, metadata_data_type.Boolean(False)),
-    #(6, metadata_data_type.Pose(entity_pose.Standing)),
-    #(7, metadata_data_type.VarInt(0)),
+    #(0, entity_metadata.Byte(0)),
+    #(1, entity_metadata.VarInt(300)),
+    #(2, entity_metadata.OptionalTextComponent(option.None)),
+    #(3, entity_metadata.Boolean(False)),
+    #(4, entity_metadata.Boolean(False)),
+    #(5, entity_metadata.Boolean(False)),
+    #(6, entity_metadata.Pose(entity_pose.Standing)),
+    #(7, entity_metadata.VarInt(0)),
   ]
 }
 
 fn default_living_entity() {
   [
-    #(8, metadata_data_type.Byte(0)),
-    #(9, metadata_data_type.Float(1.0)),
-    #(10, metadata_data_type.Particles([])),
-    #(11, metadata_data_type.Boolean(False)),
-    #(12, metadata_data_type.VarInt(0)),
-    #(13, metadata_data_type.VarInt(0)),
-    #(14, metadata_data_type.OptionalGlobalPosition(option.None)),
+    #(8, entity_metadata.Byte(0)),
+    #(9, entity_metadata.Float(1.0)),
+    #(10, entity_metadata.Particles([])),
+    #(11, entity_metadata.Boolean(False)),
+    #(12, entity_metadata.VarInt(0)),
+    #(13, entity_metadata.VarInt(0)),
+    #(14, entity_metadata.OptionalGlobalPosition(option.None)),
     ..default_entity()
   ]
 }
 
 fn default_player() {
   [
-    #(15, metadata_data_type.Float(0.0)),
-    #(16, metadata_data_type.VarInt(0)),
-    #(17, metadata_data_type.Byte(0)),
-    #(18, metadata_data_type.Byte(1)),
-    #(19, metadata_data_type.NBT(nbeet.empty)),
-    #(20, metadata_data_type.NBT(nbeet.empty)),
+    #(15, entity_metadata.Float(0.0)),
+    #(16, entity_metadata.VarInt(0)),
+    #(17, entity_metadata.Byte(0)),
+    #(18, entity_metadata.Byte(1)),
+    #(19, entity_metadata.NBT(nbeet.empty)),
+    #(20, entity_metadata.NBT(nbeet.empty)),
     ..default_living_entity()
   ]
 }
