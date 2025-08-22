@@ -48,32 +48,31 @@ type Error {
 }
 
 pub fn start(
-  host_subject: Subject(Subject(Packet)),
   game_subject: Subject(command.Command),
   connection: glisten.Connection(BitArray),
-) -> Result(actor.Started(Nil), actor.StartError) {
-  actor.start(
-    actor.new_with_initialiser(1000, fn(subject_for_host) {
-      process.send(host_subject, subject_for_host)
-      let subject_for_game = process.new_subject()
-      let phase = phase.Handshaking
-      let last_keep_alive = now_seconds()
-      let player = player.default
-
-      Ok(
-        actor.initialised(State(
-          subject_for_host:,
-          game_subject:,
-          subject_for_game:,
-          connection:,
-          phase:,
-          last_keep_alive:,
-          player:,
-        )),
-      )
-    })
-    |> actor.on_message(handle_message),
-  )
+) -> Result(actor.Started(Subject(Packet)), actor.StartError) {
+  actor.new_with_initialiser(1000, fn(subject_for_host) {
+    let subject_for_game = process.new_subject()
+    let selector =
+      process.new_selector()
+      |> process.select_map(subject_for_host, function.identity)
+      |> process.select_map(subject_for_game, GameUpdate)
+    Ok(
+      actor.initialised(State(
+        subject_for_host:,
+        game_subject:,
+        subject_for_game:,
+        connection:,
+        phase: phase.Handshaking,
+        last_keep_alive: now_seconds(),
+        player: player.default,
+      ))
+      |> actor.selecting(selector)
+      |> actor.returning(subject_for_host),
+    )
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start()
 }
 
 fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
@@ -372,6 +371,7 @@ fn send(state: State, packets: List(clientbound.Packet)) {
 }
 
 fn handle_game_update(update: update.Update, state: State) {
+  io.debug("Update: " <> string.inspect(update))
   case update {
     update.PlayerSpawned(player, entity) -> {
       send(state, player_handler.handle_spawn(player, entity))

@@ -15,6 +15,7 @@ import gleam/function
 import gleam/list
 import gleam/otp/actor
 import gleam/pair
+import gleam/set
 
 type Game {
   Game(
@@ -24,21 +25,13 @@ type Game {
 }
 
 pub fn start() -> Result(Subject(Command), actor.StartError) {
-  let parent_subject = process.new_subject()
   let start_result =
-    actor.start(
-      actor.new_with_initialiser(1000, fn(sim_subject) {
-        process.send(parent_subject, sim_subject)
-
-        Ok(actor.initialised(Game(sessions: dict.new(), entities: dict.new())))
-      })
-      |> actor.on_message(loop),
-    )
-
-  let assert Ok(game_subject) = process.receive(parent_subject, 1000)
+    actor.new(Game(sessions: dict.new(), entities: dict.new()))
+    |> actor.on_message(loop)
+    |> actor.start()
 
   case start_result {
-    Ok(_) -> Ok(game_subject)
+    Ok(started) -> Ok(started.data)
     Error(err) -> Error(err)
   }
 }
