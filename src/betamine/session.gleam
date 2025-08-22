@@ -1,9 +1,6 @@
 import betamine/common/difficulty
-
 import betamine/common/entity/entity_hand
-
 import betamine/common/entity/player/player_command_action
-
 import betamine/common/entity/player/player_interaction
 import betamine/common/profile
 import betamine/common/uuid
@@ -20,7 +17,7 @@ import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import betamine/protocol/registry
 import gleam/erlang/process.{type Subject}
-import gleam/io
+import gleam/function
 import gleam/list
 import gleam/otp/actor
 import gleam/string
@@ -51,29 +48,32 @@ type Error {
 }
 
 pub fn start(
-  host_subject: Subject(Subject(Packet)),
   game_subject: Subject(command.Command),
   connection: glisten.Connection(BitArray),
-) -> Result(actor.Started(Nil), actor.StartError) {
-  actor.start(
-    actor.new_with_initialiser(1000, fn(subject_for_host) {
-      process.send(host_subject, subject_for_host)
-      let subject_for_game = process.new_subject()
-      Ok(
-        actor.initialised(State(
-          subject_for_host:,
-          game_subject:,
-          subject_for_game:,
-          connection:,
-          phase: phase.Handshaking,
-          last_keep_alive: now_seconds(),
-          profile: profile.default(),
-          uuid: uuid.default,
-        )),
-      )
-    })
-    |> actor.on_message(handle_message),
-  )
+) -> Result(actor.Started(Subject(Packet)), actor.StartError) {
+  actor.new_with_initialiser(1000, fn(subject_for_host) {
+    let subject_for_game = process.new_subject()
+    let selector =
+      process.new_selector()
+      |> process.select_map(subject_for_host, function.identity)
+      |> process.select_map(subject_for_game, GameUpdate)
+    Ok(
+      actor.initialised(State(
+        subject_for_host:,
+        game_subject:,
+        subject_for_game:,
+        connection:,
+        phase: phase.Handshaking,
+        last_keep_alive: now_seconds(),
+        profile: profile.default(),
+        uuid: uuid.default,
+      ))
+      |> actor.selecting(selector)
+      |> actor.returning(subject_for_host),
+    )
+  })
+  |> actor.on_message(handle_message)
+  |> actor.start()
 }
 
 fn handle_message(state: State, packet: Packet) -> actor.Next(State, Packet) {
@@ -137,7 +137,7 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
     _ -> state
   }
 
-  // io.debug("Receivied Packet: " <> string.inspect(packet))
+  // echo "Receivied Packet: " <> string.inspect(packet)
 
   case packet {
     serverbound.Handshake(packet) -> {
@@ -332,22 +332,21 @@ fn handle_server_bound(packet: serverbound.Packet, state: State) {
 }
 
 fn send(state: State, packets: List(clientbound.Packet)) {
-  io.println(
-    "Sending Packets To: "
+  echo "Sending Packets To: "
     <> state.profile.name
     <> " w/ State: "
-    <> string.inspect(state.phase),
-  )
+    <> string.inspect(state.phase)
 
   list.each(packets, fn(packet) {
-    // io.debug(packet)
+    // echo packet
     let encoded_packet = protocol.encode_clientbound(packet)
-    // io.debug(bit_array.inspect(bytes_tree.to_bit_array(encoded_packet)))
+    // echo bit_array.inspect(bytes_tree.to_bit_array(encoded_packet))
     let assert Ok(Nil) = glisten.send(state.connection, encoded_packet)
   })
 }
 
 fn handle_game_update(update: update.Update, state: State) {
+  echo "Update: " <> string.inspect(update)
   case update {
     update.PlayerSpawned(player, entity) -> {
       send(state, player_handler.handle_spawn(player, entity))
