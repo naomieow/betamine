@@ -9,6 +9,7 @@ import betamine/protocol/common/particle
 import betamine/protocol/encoder
 import gleam/bytes_tree
 import gleam/dict
+import gleam/list
 import gleam/option
 import nbeet
 
@@ -100,17 +101,21 @@ fn encode_data_type(bytes_tree: bytes_tree.BytesTree, data_type: DataType) {
   |> case data_type {
     Byte(byte) -> encoder.byte(_, byte)
     VarInt(var_int) -> encoder.var_int(_, var_int)
-    VarLong(_) -> todo
+    VarLong(var_long) -> encoder.var_long(_, var_long)
     Float(float) -> encoder.float(_, float)
     String(string) -> encoder.string(_, string)
     TextComponent(_) -> todo
     OptionalTextComponent(_) -> todo
     Slot(_) -> todo
     Boolean(bool) -> encoder.bool(_, bool)
-    Rotations(_, _, _) -> todo
-    Position(_) -> todo
-    OptionalPosition(_) -> todo
-    Direction(_) -> todo
+    Rotations(x, y, z) -> list.fold([x, y, z], _, encoder.float)
+    Position(position) -> encoder.raw(_, position.to_bit_array(position))
+    OptionalPosition(optional_position) -> encoder.optional(
+      _,
+      optional_position,
+      encoder.position,
+    )
+    Direction(direction) -> encoder.var_int(_, direction.to_int(direction))
     OptionalLivingEntityReference(_) -> todo
     BlockState -> todo
     OptionalBlockState(_) -> todo
@@ -118,16 +123,27 @@ fn encode_data_type(bytes_tree: bytes_tree.BytesTree, data_type: DataType) {
     Particle(_) -> todo
     Particles(_) -> todo
     VillagerData(_, _, _) -> todo
-    OptionalVarInt(_) -> todo
+    OptionalVarInt(optional_var_int) -> encoder.var_int(
+      _,
+      option.unwrap(optional_var_int, 0),
+    )
     Pose(pose) -> encoder.var_int(_, entity_pose.to_int(pose))
     CatVariant(_) -> todo
     WolfVariant(_) -> todo
     FrogVariant(_) -> todo
-    OptionalGlobalPosition(_) -> todo
+    OptionalGlobalPosition(optional_global_position) -> encoder.optional(
+      _,
+      optional_global_position,
+      fn(tree, global_position) {
+        tree
+        |> encoder.identifier(global_position.identifier)
+        |> encoder.position(global_position.position)
+      },
+    )
     PaintingVariant -> todo
     SnifferState -> todo
     AramdilloState -> todo
-    Vector3(_, _, _) -> todo
-    Quaternion(_, _, _, _) -> todo
+    Vector3(x, y, z) -> list.fold([x, y, z], _, encoder.float)
+    Quaternion(x, y, z, w) -> list.fold([x, y, z, w], _, encoder.float)
   }
 }

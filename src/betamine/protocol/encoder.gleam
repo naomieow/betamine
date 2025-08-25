@@ -1,3 +1,5 @@
+import betamine/common/identifier
+import betamine/common/position
 import betamine/common/vector3.{type Vector3}
 import gleam/bit_array
 import gleam/bytes_tree.{type BytesTree}
@@ -16,6 +18,11 @@ pub fn bool(tree: BytesTree, bool: Bool) -> BytesTree {
 
 pub fn var_int(tree: BytesTree, int: Int) -> BytesTree {
   let clamped_int = int.bitwise_and(int, 0xFFFFFFFF)
+  var_int_accumulator(tree, clamped_int)
+}
+
+pub fn var_long(tree: BytesTree, int: Int) -> BytesTree {
+  let clamped_int = int.bitwise_and(int, 0xFFFFFFFFFFFFFFFF)
   var_int_accumulator(tree, clamped_int)
 }
 
@@ -62,15 +69,16 @@ pub fn double(tree: BytesTree, float: Float) -> BytesTree {
   bytes_tree.append(tree, <<float:float-size(64)>>)
 }
 
-pub fn position(tree: BytesTree, position: Vector3(Float)) -> BytesTree {
-  let x = float.truncate(position.x)
-  let z = float.truncate(position.z)
-  let y = float.truncate(position.y)
-  bytes_tree.append(tree, <<x:int-size(26), z:int-size(26), y:int-size(12)>>)
+pub fn position(tree: BytesTree, position: Vector3(Int)) -> BytesTree {
+  bytes_tree.append(tree, position.to_bit_array(position))
 }
 
 pub fn angle(tree: BytesTree, angle: Float) -> BytesTree {
   byte(tree, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
+}
+
+pub fn identifier(tree: BytesTree, identifier: identifier.Identifier) {
+  string(tree, identifier.to_string(identifier))
 }
 
 pub fn raw(tree: BytesTree, bit_array: BitArray) {

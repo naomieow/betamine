@@ -350,7 +350,7 @@ pub type DeathLocation {
 fn encode_death_location(tree: BytesTree, death_location: DeathLocation) {
   tree
   |> common.encode_identifier(death_location.dimension)
-  |> encoder.position(death_location.position)
+  |> encoder.position(death_location.position |> vector3.truncate)
 }
 
 pub type ChangeDifficultyPacket {
