@@ -19,25 +19,25 @@ fn expected_uuid() {
 }
 
 pub fn decode_uuid_from_string_test() {
-  decode.run(dynamic.from(string_uuid), uuid.decoder())
+  decode.run(dynamic.string(string_uuid), uuid.decoder())
   |> should.be_ok
   |> should.equal(expected_uuid())
 }
 
 pub fn decode_uuid_from_trimmed_string_test() {
-  decode.run(dynamic.from(trimmed_string_uuid), uuid.decoder())
+  decode.run(dynamic.string(trimmed_string_uuid), uuid.decoder())
   |> should.be_ok
   |> should.equal(expected_uuid())
 }
 
 pub fn decode_uuid_from_bit_array_test() {
-  decode.run(dynamic.from(bit_array_uuid), uuid.decoder())
+  decode.run(dynamic.bit_array(bit_array_uuid), uuid.decoder())
   |> should.be_ok
   |> should.equal(expected_uuid())
 }
 
 pub fn decode_uuid_from_int_test() {
-  decode.run(dynamic.from(int_uuid), uuid.decoder())
+  decode.run(dynamic.int(int_uuid), uuid.decoder())
   |> should.be_ok
   |> should.equal(expected_uuid())
 }

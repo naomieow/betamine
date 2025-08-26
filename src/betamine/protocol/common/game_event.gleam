@@ -1,4 +1,4 @@
-import betamine/common/game_mode.{type GameMode}
+import betamine/common/entity/player/player_game_mode.{type PlayerGameMode}
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
 import gleam/int
@@ -7,7 +7,7 @@ pub type GameEvent {
   NoRespawnBlockAvailable
   StartRain
   EndRain
-  ChangeGameMode(GameMode)
+  ChangeGameMode(PlayerGameMode)
   WinGame(play_credits: Bool)
   DemoEvent(DemoEvent)
   ArrowHitPlayer
@@ -48,7 +48,7 @@ pub fn encode(tree: BytesTree, game_event: GameEvent) {
     ChangeGameMode(game_mode) -> {
       tree
       |> encoder.byte(3)
-      |> encoder.float(game_mode |> game_mode.to_int |> int.to_float)
+      |> encoder.float(game_mode |> player_game_mode.to_int |> int.to_float)
     }
     WinGame(play_credits) -> {
       tree

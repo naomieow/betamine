@@ -6,7 +6,7 @@ pub fn handle_spawn(entity: Entity) -> Packet {
   clientbound.SpawnEntity(clientbound.SpawnEntityPacket(
     id: entity.id,
     uuid: entity.uuid,
-    entity_type: entity.entity_type,
+    entity_type: entity.kind,
     position: entity.position,
     rotation: entity.rotation,
     head_rotation: entity.head_rotation,

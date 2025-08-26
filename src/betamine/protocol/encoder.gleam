@@ -1,4 +1,5 @@
-import betamine/common/uuid
+import betamine/common/identifier
+import betamine/common/position
 import betamine/common/vector3.{type Vector3}
 import gleam/bit_array
 import gleam/bytes_tree.{type BytesTree}
@@ -20,6 +21,11 @@ pub fn var_int(tree: BytesTree, int: Int) -> BytesTree {
   var_int_accumulator(tree, clamped_int)
 }
 
+pub fn var_long(tree: BytesTree, int: Int) -> BytesTree {
+  let clamped_int = int.bitwise_and(int, 0xFFFFFFFFFFFFFFFF)
+  var_int_accumulator(tree, clamped_int)
+}
+
 fn var_int_accumulator(tree: BytesTree, int: Int) {
   let segment = int.bitwise_and(int, 0b01111111)
   let int = int.bitwise_shift_right(int, 7)
@@ -37,10 +43,6 @@ fn var_int_accumulator(tree: BytesTree, int: Int) {
 pub fn string(tree: BytesTree, string: String) -> BytesTree {
   let tree = var_int(tree, string.length(string))
   bytes_tree.append(tree, <<string:utf8>>)
-}
-
-pub fn identifier(tree: BytesTree, identifier: #(String, String)) -> BytesTree {
-  string(tree, identifier.0 <> ":" <> identifier.1)
 }
 
 pub fn byte(tree: BytesTree, int: Int) -> BytesTree {
@@ -67,19 +69,16 @@ pub fn double(tree: BytesTree, float: Float) -> BytesTree {
   bytes_tree.append(tree, <<float:float-size(64)>>)
 }
 
-pub fn position(tree: BytesTree, position: Vector3(Float)) -> BytesTree {
-  let x = float.truncate(position.x)
-  let z = float.truncate(position.z)
-  let y = float.truncate(position.y)
-  bytes_tree.append(tree, <<x:int-size(26), z:int-size(26), y:int-size(12)>>)
+pub fn position(tree: BytesTree, position: Vector3(Int)) -> BytesTree {
+  bytes_tree.append(tree, position.to_bit_array(position))
 }
 
 pub fn angle(tree: BytesTree, angle: Float) -> BytesTree {
   byte(tree, { angle /. 360.0 *. 256.0 |> float.truncate } % 256)
 }
 
-pub fn uuid(tree: BytesTree, uuid: uuid.Uuid) -> BytesTree {
-  bytes_tree.append(tree, uuid.to_bit_array(uuid))
+pub fn identifier(tree: BytesTree, identifier: identifier.Identifier) {
+  string(tree, identifier.to_string(identifier))
 }
 
 pub fn raw(tree: BytesTree, bit_array: BitArray) {
@@ -123,5 +122,22 @@ pub fn optional(
       bool(tree, True)
       |> when_some(value)
     }
+  }
+}
+
+pub fn bitmask(tree: BytesTree, bitmask: List(Bool)) {
+  bitmask_to_int(list.reverse(bitmask), 0) |> byte(tree, _)
+}
+
+fn bitmask_to_int(bitmask: List(Bool), accumulator: Int) {
+  case bitmask {
+    [bool, ..bitmask] -> {
+      let bit = case bool {
+        True -> 1
+        False -> 0
+      }
+      bitmask_to_int(bitmask, int.bitwise_shift_left(accumulator, 1) + bit)
+    }
+    [] -> int.bitwise_and(accumulator, 0b111111111)
   }
 }

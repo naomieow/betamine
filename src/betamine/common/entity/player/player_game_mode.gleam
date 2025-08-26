@@ -1,11 +1,11 @@
-pub type GameMode {
+pub type PlayerGameMode {
   Survival
   Creative
   Adventure
   Spectator
 }
 
-pub fn to_int(game_mode: GameMode) {
+pub fn to_int(game_mode: PlayerGameMode) {
   case game_mode {
     Survival -> 0
     Creative -> 1

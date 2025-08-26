@@ -1,15 +1,17 @@
+import betamine/common/chat/chat_session
 import betamine/common/chunk
 import betamine/common/difficulty.{type Difficulty}
-import betamine/common/entity_type
-import betamine/common/game_mode
+import betamine/common/entity/entity_animation
+import betamine/common/entity/entity_kind
+import betamine/common/entity/player/player_game_mode
+import betamine/common/identifier
 import betamine/common/profile
 import betamine/common/rotation.{type Rotation}
 import betamine/common/uuid
 import betamine/common/vector3.{type Vector3}
 import betamine/constants
 import betamine/protocol/common
-import betamine/protocol/common/chat_session
-import betamine/protocol/common/entity_animation
+import betamine/protocol/common/entity/entity_metadata
 import betamine/protocol/common/game_event
 import betamine/protocol/encoder
 import gleam/bytes_tree.{type BytesTree}
@@ -20,30 +22,30 @@ import gleam/option.{type Option, None}
 import gleam/set
 
 pub type Packet {
-  StatusResponse(StatusResponsePacket)
-  StatusPong(StatusPongPacket)
-  LoginSuccess(LoginSuccessPacket)
-  Plugin(PluginPacket)
-  FeatureFlags(FeatureFlagsPacket)
-  KnownDataPacks(KnownDataPacksPacket)
-  Registry(RegistryPacket)
+  StatusResponse(packet: StatusResponsePacket)
+  StatusPong(packet: StatusPongPacket)
+  LoginSuccess(packet: LoginSuccessPacket)
+  Plugin(packet: PluginPacket)
+  FeatureFlags(packet: FeatureFlagsPacket)
+  KnownDataPacks(packet: KnownDataPacksPacket)
+  Registry(packet: RegistryPacket)
   FinishConfiguration
-  Login(LoginPacket)
-  ChangeDifficulty(ChangeDifficultyPacket)
-  GameEvent(GameEventPacket)
-  SetCenterChunk(SetCenterChunkPacket)
-  LevelChunkWithLight(LevelChunkWithLightPacket)
-  PlayerInfoRemove(PlayerInfoRemovePacket)
-  PlayerInfoUpdate(PlayerInfoUpdatePacket)
-  SynchronizePlayerPosition(SynchronizePlayerPositionPacket)
-  SpawnEntity(SpawnEntityPacket)
-  UpdateEntityPosition(UpdateEntityPositionPacket)
-  UpdateEntityRotation(UpdateEntityRotationPacket)
-  SetHeadRotation(SetHeadRotationPacket)
-  RemoveEntities(RemoveEntitiesPacket)
-  PlayKeepAlive(PlayKeepAlivePacket)
-  SetEntityMetadata(SetEntityMetadataPacket)
-  AnimateEntity(AnimateEntityPacket)
+  Login(packet: LoginPacket)
+  ChangeDifficulty(packet: ChangeDifficultyPacket)
+  GameEvent(packet: GameEventPacket)
+  SetCenterChunk(packet: SetCenterChunkPacket)
+  LevelChunkWithLight(packet: LevelChunkWithLightPacket)
+  PlayerInfoRemove(packet: PlayerInfoRemovePacket)
+  PlayerInfoUpdate(packet: PlayerInfoUpdatePacket)
+  SynchronizePlayerPosition(packet: SynchronizePlayerPositionPacket)
+  SpawnEntity(packet: SpawnEntityPacket)
+  UpdateEntityPosition(packet: UpdateEntityPositionPacket)
+  UpdateEntityRotation(packet: UpdateEntityRotationPacket)
+  SetHeadRotation(packet: SetHeadRotationPacket)
+  RemoveEntities(packet: RemoveEntitiesPacket)
+  PlayKeepAlive(packet: PlayKeepAlivePacket)
+  SetEntityMetadata(packet: SetEntityMetadataPacket)
+  AnimateEntity(packet: AnimateEntityPacket)
 }
 
 pub fn encode(packet: Packet) -> BytesTree {
@@ -209,31 +211,28 @@ pub type LoginSuccessPacket {
 
 fn encode_login_success(tree: BytesTree, packet: LoginSuccessPacket) {
   tree
-  |> encoder.uuid(packet.uuid)
+  |> common.encode_uuid(packet.uuid)
   |> encoder.string(packet.username)
   |> encoder.array(packet.properties, profile.encode_property)
   |> encoder.bool(packet.strict_error_handling)
 }
 
 pub type PluginPacket {
-  PluginPacket(channel: Identifier, implementation: BitArray)
+  PluginPacket(channel: identifier.Identifier, implementation: BitArray)
 }
 
 pub fn encode_plugin(tree: BytesTree, packet: PluginPacket) {
   tree
-  |> encoder.identifier(packet.channel)
+  |> common.encode_identifier(packet.channel)
   |> encoder.raw(packet.implementation)
 }
 
-pub type Identifier =
-  #(String, String)
-
 pub type FeatureFlagsPacket {
-  FeatureFlagsPacket(flags: List(Identifier))
+  FeatureFlagsPacket(flags: List(identifier.Identifier))
 }
 
 fn encode_feature_flags(tree: BytesTree, packet: FeatureFlagsPacket) {
-  encoder.array(tree, packet.flags, encoder.identifier)
+  encoder.array(tree, packet.flags, common.encode_identifier)
 }
 
 pub type KnownDataPacksPacket {
@@ -256,22 +255,22 @@ fn encode_known_data_pack(tree: BytesTree, packet: KnownDataPack) {
 }
 
 pub type RegistryPacket {
-  RegistryPacket(id: Identifier, entries: List(RegistryEntry))
+  RegistryPacket(id: identifier.Identifier, entries: List(RegistryEntry))
 }
 
 fn encode_registry(tree: BytesTree, packet: RegistryPacket) {
   tree
-  |> encoder.identifier(packet.id)
+  |> common.encode_identifier(packet.id)
   |> encoder.array(packet.entries, encode_registry_entry)
 }
 
 pub type RegistryEntry {
-  RegistryEntry(id: Identifier, data: Option(BitArray))
+  RegistryEntry(id: identifier.Identifier, data: Option(BitArray))
 }
 
 fn encode_registry_entry(tree: BytesTree, entry: RegistryEntry) {
   tree
-  |> encoder.identifier(entry.id)
+  |> common.encode_identifier(entry.id)
   |> encoder.optional(entry.data, encoder.raw)
 }
 
@@ -279,7 +278,7 @@ pub type LoginPacket {
   LoginPacket(
     entity_id: Int,
     is_hardcore: Bool,
-    dimensions: List(Identifier),
+    dimensions: List(identifier.Identifier),
     max_player_count: Int,
     view_distance: Int,
     simulation_distance: Int,
@@ -287,7 +286,7 @@ pub type LoginPacket {
     enable_respawn_screen: Bool,
     do_limited_crafting: Bool,
     dimension_id: Int,
-    dimension_name: Identifier,
+    dimension_name: identifier.Identifier,
     hashed_seed: Int,
     game_mode: Int,
     previous_game_mode: Int,
@@ -325,7 +324,7 @@ pub fn encode_login(tree: BytesTree, packet: LoginPacket) {
   tree
   |> encoder.int(packet.entity_id)
   |> encoder.bool(packet.is_hardcore)
-  |> encoder.array(packet.dimensions, encoder.identifier)
+  |> encoder.array(packet.dimensions, common.encode_identifier)
   |> encoder.var_int(packet.max_player_count)
   |> encoder.var_int(packet.view_distance)
   |> encoder.var_int(packet.simulation_distance)
@@ -333,7 +332,7 @@ pub fn encode_login(tree: BytesTree, packet: LoginPacket) {
   |> encoder.bool(packet.enable_respawn_screen)
   |> encoder.bool(packet.do_limited_crafting)
   |> encoder.var_int(packet.dimension_id)
-  |> encoder.identifier(packet.dimension_name)
+  |> common.encode_identifier(packet.dimension_name)
   |> encoder.long(packet.hashed_seed)
   |> encoder.byte(packet.game_mode)
   |> encoder.byte(packet.previous_game_mode)
@@ -345,13 +344,13 @@ pub fn encode_login(tree: BytesTree, packet: LoginPacket) {
 }
 
 pub type DeathLocation {
-  DeathLocation(dimension: Identifier, position: Vector3(Float))
+  DeathLocation(dimension: identifier.Identifier, position: Vector3(Float))
 }
 
 fn encode_death_location(tree: BytesTree, death_location: DeathLocation) {
   tree
-  |> encoder.identifier(death_location.dimension)
-  |> encoder.position(death_location.position)
+  |> common.encode_identifier(death_location.dimension)
+  |> encoder.position(death_location.position |> vector3.truncate)
 }
 
 pub type ChangeDifficultyPacket {
@@ -398,20 +397,22 @@ pub type LevelChunkWithLightPacket {
   )
 }
 
+pub const default_level_chunk_with_light_packet = LevelChunkWithLightPacket(
+  x: 0,
+  z: 0,
+  height_maps: <<0x0A, 0x00>>,
+  sections: chunk.default_chunk,
+  block_entities: [],
+  sky_light_mask: [],
+  block_light_mask: [],
+  empty_sky_light_mask: [],
+  empty_block_light_mask: [],
+  sky_light_arrays: [],
+  block_light_arrays: [],
+)
+
 pub const default_level_chunk_with_light = LevelChunkWithLight(
-  LevelChunkWithLightPacket(
-    x: 0,
-    z: 0,
-    height_maps: <<0x0A, 0x00>>,
-    sections: chunk.default_chunk,
-    block_entities: [],
-    sky_light_mask: [],
-    block_light_mask: [],
-    empty_sky_light_mask: [],
-    empty_block_light_mask: [],
-    sky_light_arrays: [],
-    block_light_arrays: [],
-  ),
+  default_level_chunk_with_light_packet,
 )
 
 fn encode_level_chunk_with_light(
@@ -431,11 +432,21 @@ fn encode_level_chunk_with_light(
     |> encoder.var_int(bytes_tree.byte_size(data))
   let footer =
     bytes_tree.new()
-    |> encoder.array(packet.block_entities, fn(_, _) { todo })
-    |> encoder.array(packet.sky_light_mask, fn(_, _) { todo })
-    |> encoder.array(packet.block_light_mask, fn(_, _) { todo })
-    |> encoder.array(packet.empty_sky_light_mask, fn(_, _) { todo })
-    |> encoder.array(packet.empty_block_light_mask, fn(_, _) { todo })
+    |> encoder.array(packet.block_entities, fn(_, _) {
+      todo as "Encode block entities"
+    })
+    |> encoder.array(packet.sky_light_mask, fn(_, _) {
+      todo as "Encode sky light mask"
+    })
+    |> encoder.array(packet.block_light_mask, fn(_, _) {
+      todo as "Encode block light mask"
+    })
+    |> encoder.array(packet.empty_sky_light_mask, fn(_, _) {
+      todo as "Encode empty sky light mask"
+    })
+    |> encoder.array(packet.empty_block_light_mask, fn(_, _) {
+      todo as "Encode empty block light mask"
+    })
     |> encoder.array(packet.sky_light_arrays, encoder.byte_array)
     |> encoder.array(packet.block_light_arrays, encoder.byte_array)
   bytes_tree.concat([tree, header, data_size, data, footer])
@@ -469,7 +480,7 @@ pub type PlayerInfoRemovePacket {
 }
 
 fn encode_player_info_remove(tree: BytesTree, packet: PlayerInfoRemovePacket) {
-  encoder.array(tree, packet.uuids, encoder.uuid)
+  encoder.array(tree, packet.uuids, common.encode_uuid)
 }
 
 // This packet could use some help. I based it's implementation off of Mojang's.
@@ -527,7 +538,7 @@ pub type PlayerInfoUpdateEntry {
     latency: Int,
     visible_on_player_list: Bool,
     profile: profile.Profile,
-    game_mode: game_mode.GameMode,
+    game_mode: player_game_mode.PlayerGameMode,
     chat_session: Option(chat_session.ChatSession),
     display_name: Option(String),
   )
@@ -540,7 +551,7 @@ fn encode_player_info_update_entry(
   entry: PlayerInfoUpdateEntry,
   actions: set.Set(PlayerInfoUpdateAction),
 ) {
-  let tree = encoder.uuid(tree, entry.uuid)
+  let tree = common.encode_uuid(tree, entry.uuid)
   let tree = case set.contains(actions, AddPlayer) {
     True -> {
       tree
@@ -554,7 +565,7 @@ fn encode_player_info_update_entry(
     False -> tree
   }
   let tree = case set.contains(actions, UpdateGameMode) {
-    True -> encoder.var_int(tree, game_mode.to_int(entry.game_mode))
+    True -> encoder.var_int(tree, player_game_mode.to_int(entry.game_mode))
     False -> tree
   }
   let tree = case set.contains(actions, UpdateListed) {
@@ -575,7 +586,7 @@ pub type SpawnEntityPacket {
   SpawnEntityPacket(
     id: Int,
     uuid: uuid.Uuid,
-    entity_type: entity_type.EntityType,
+    entity_type: entity_kind.EntityKind,
     position: Vector3(Float),
     rotation: Rotation,
     head_rotation: Float,
@@ -586,8 +597,8 @@ pub type SpawnEntityPacket {
 fn encode_spawn_entity(tree: BytesTree, packet: SpawnEntityPacket) {
   tree
   |> encoder.var_int(packet.id)
-  |> encoder.uuid(packet.uuid)
-  |> encoder.var_int(packet.entity_type |> entity_type.to_id)
+  |> common.encode_uuid(packet.uuid)
+  |> encoder.var_int(packet.entity_type |> entity_kind.to_id)
   |> vector3.fold(packet.position, _, encoder.double)
   |> encoder.angle(packet.rotation.pitch)
   |> encoder.angle(packet.rotation.yaw)
@@ -661,36 +672,23 @@ fn encode_play_keep_alive(tree: BytesTree, packet: PlayKeepAlivePacket) {
 
 // An exteremly simplified version of entity metadata.
 pub type SetEntityMetadataPacket {
-  SetEntityMetadataPacket(entity_id: Int, is_sneaking: Bool)
+  SetEntityMetadataPacket(entity_id: Int, metadata: entity_metadata.Metadata)
 }
 
 fn encode_set_entity_metadata(tree: BytesTree, packet: SetEntityMetadataPacket) {
   encoder.var_int(tree, packet.entity_id)
-  |> encoder.byte(0)
-  |> encoder.var_int(0)
-  |> encoder.byte(case packet.is_sneaking {
-    True -> 0b00000010
-    False -> 0
-  })
-  // Pose
-  |> encoder.byte(6)
-  |> encoder.var_int(21)
-  |> encoder.byte(case packet.is_sneaking {
-    // Sneaking
-    True -> 5
-    // Standing
-    False -> 0
-  })
-  // End
-  |> encoder.byte(0xFF)
+  |> entity_metadata.encode(packet.metadata)
 }
 
 pub type AnimateEntityPacket {
-  AnimateEntityPacket(entity_id: Int, animation: entity_animation.Animation)
+  AnimateEntityPacket(
+    entity_id: Int,
+    animation: entity_animation.EntityAnimation,
+  )
 }
 
 pub fn encode_animate_entity(tree: BytesTree, packet: AnimateEntityPacket) {
   tree
   |> encoder.var_int(packet.entity_id)
-  |> entity_animation.encode(packet.animation)
+  |> encoder.byte(entity_animation.to_int(packet.animation))
 }

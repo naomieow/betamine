@@ -14,9 +14,8 @@ pub type PlayerCommandAction {
   StartElytraFlying
 }
 
-pub fn decode(data: BitArray) {
-  use #(action, data) <- result.try(decoder.var_int(data))
-  let action = case action {
+pub fn from_int(int: Int) {
+  case int {
     0 -> Ok(StartSneaking)
     1 -> Ok(StopSneaking)
     2 -> Ok(LeaveBed)
@@ -26,7 +25,11 @@ pub fn decode(data: BitArray) {
     6 -> Ok(StopHorseJump)
     7 -> Ok(OpenVehicleInventory)
     8 -> Ok(StartElytraFlying)
-    value -> Error(error.InvalidEnumValue("PlayerCommandAction", 0, 8, value))
+    value -> Error(error.InvalidEnumValue("CommandAction", 0, 8, value))
   }
-  result.map(action, fn(action) { #(action, data) })
+}
+
+pub fn decode(data: BitArray) {
+  use #(hand, data) <- result.try(decoder.var_int(data))
+  result.map(from_int(hand), fn(hand) { #(hand, data) })
 }

@@ -23,7 +23,9 @@ pub type Profile {
   Profile(id: uuid.Uuid, name: String, properties: List(ProfileProperty))
 }
 
-pub const default = Profile(uuid.default, "", [])
+pub fn default() {
+  Profile(uuid.default, "", [])
+}
 
 pub fn decoder() {
   use id <- decode.field("id", uuid.decoder())

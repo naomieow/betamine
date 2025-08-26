@@ -5,19 +5,16 @@ import betamine/protocol/packets/serverbound
 import betamine/protocol/phase
 import gleam/bytes_tree
 import gleam/int
-import gleam/io
 import gleam/string
 
 pub fn decode_serverbound(phase: phase.Phase, data: BitArray) {
   let assert Ok(#(_length, data)) = decoder.var_int(data)
   // TODO: Add check for accurate length
   let assert Ok(#(id, data)) = decoder.var_int(data)
-  io.debug(
-    "Receiving Packet w/ Phase:"
+  echo "Receiving Packet w/ Phase:"
     <> string.inspect(phase)
     <> ", Id: 0x"
-    <> int.to_base16(id),
-  )
+    <> int.to_base16(id)
   serverbound.decode(phase, id, data)
 }
 

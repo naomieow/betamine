@@ -1,4 +1,3 @@
-import betamine/common/uuid
 import betamine/protocol/error.{type ProtocolError}
 import gleam/bit_array
 import gleam/int
@@ -94,17 +93,6 @@ pub fn int(bit_array: BitArray) {
 pub fn long(bit_array: BitArray) {
   case bit_array {
     <<bytes:int-signed-size(64), bit_array:bytes>> -> Ok(#(bytes, bit_array))
-    _ -> Error(error.EndOfData)
-  }
-}
-
-pub fn uuid(bit_array: BitArray) {
-  case bit_array {
-    <<bytes:bytes-size(16), bit_array:bytes>> -> {
-      uuid.from_bit_array(bytes)
-      |> result.map(fn(bytes) { #(bytes, bit_array) })
-      |> result.replace_error(error.InvalidUUID(bytes))
-    }
     _ -> Error(error.EndOfData)
   }
 }
