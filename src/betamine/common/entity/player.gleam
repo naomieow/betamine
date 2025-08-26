@@ -11,7 +11,6 @@ pub fn new() {
   Player("", entity: entity.new(entity_kind.Player), profile: profile.default())
 }
 
-
 pub fn with_uuid(player: Player, uuid: uuid.Uuid) {
   Player(..player, entity: entity.with_uuid(player.entity, uuid))
 }
